@@ -29,6 +29,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # The progress endpoint is a POST and is deliberately not CSRF-exempt, so the protection
+    # it relies on has to be in place here for a test to be able to demonstrate that.
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
