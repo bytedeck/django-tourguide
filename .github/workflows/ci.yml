@@ -79,3 +79,22 @@ jobs:
       - run: pip install -e .
       - run: python demo/manage.py check
       - run: python demo/manage.py migrate --noinput
+
+  ci-ok:
+    # One check summarising the whole workflow, so branch protection has a single stable name
+    # to require. Requiring the matrix jobs individually would mean editing the protection
+    # rule every time the matrix changes, and a job renamed on a branch would quietly stop
+    # being required rather than failing.
+    needs: [lint, test, demo]
+    # Without this the job is skipped whenever a dependency fails, so the required check would
+    # never report at all and the pull request would sit blocked forever instead of red.
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        # `needs.*.result` is success, failure, cancelled or skipped. Testing for anything
+        # other than success is what stops a cancelled or skipped job counting as a pass.
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: |
+          echo "::error::CI did not pass: lint=${{ needs.lint.result }} test=${{ needs.test.result }} demo=${{ needs.demo.result }}"
+          exit 1
