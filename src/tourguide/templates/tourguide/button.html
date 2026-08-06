@@ -1,0 +1,5 @@
+{% comment %}
+`data-tourguide-start` is what the client binds to, not the class, so restyling or replacing
+this button does not stop it working.
+{% endcomment %}
+<button type="button" class="{{ css_class }}" data-tourguide-start="{{ slug }}">{{ label }}</button>

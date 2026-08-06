@@ -1,0 +1,13 @@
+{% load static %}
+{% comment %}
+Everything the client needs, in load order. Both scripts are deferred, which keeps them out of
+the parser's way and guarantees driver.js has run by the time the adapter looks for it.
+
+The config goes through `json_script` rather than being interpolated, so a slug or token
+containing markup cannot break out of the tag.
+{% endcomment %}
+<link rel="stylesheet" href="{% static 'tourguide/vendor/driver.css' %}">
+<link rel="stylesheet" href="{% static 'tourguide/tourguide.css' %}">
+{{ config|json_script:"tourguide-config" }}
+<script src="{% static 'tourguide/vendor/driver.js.iife.js' %}" defer></script>
+<script src="{% static 'tourguide/tourguide.js' %}" defer></script>
