@@ -37,16 +37,17 @@ jobs:
     strategy:
       fail-fast: false
       # Explicit combinations rather than a cross product, since not every Django release
-      # supports every Python version: 5.2 wants 3.10+, while 6.0 and 6.1 want 3.12+.
-      # Both ends of each Django's Python range are covered rather than every point in it.
+      # supports every Python version: 5.2 covers 3.10 to 3.14, while 6.0 and 6.1 start at
+      # 3.12. Both ends of each Django's Python range are tested rather than every point in
+      # it, so the declared support is backed by a job at each boundary.
       matrix:
         include:
           - { python: "3.10", django: "5.2" }
-          - { python: "3.13", django: "5.2" }
+          - { python: "3.14", django: "5.2" }
           - { python: "3.12", django: "6.0" }
-          - { python: "3.13", django: "6.0" }
+          - { python: "3.14", django: "6.0" }
           - { python: "3.12", django: "6.1" }
-          - { python: "3.13", django: "6.1" }
+          - { python: "3.14", django: "6.1" }
     name: test (py${{ matrix.python }}, dj${{ matrix.django }})
     steps:
       - uses: actions/checkout@v4
