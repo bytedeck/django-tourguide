@@ -1,0 +1,26 @@
+{% extends "demo/base.html" %}
+
+{% block title %}Home | django-tourguide demo{% endblock %}
+{% block heading %}Home{% endblock %}
+
+{% block content %}
+  <div class="panel" data-tour="home-intro">
+    <h2>What this is</h2>
+    <p>
+      A minimal, real Django site used to demonstrate and screenshot
+      <code>django-tourguide</code>. The package has no user interface of its own, so this
+      stands in for a host project.
+    </p>
+  </div>
+
+  <div class="panel" data-tour="home-widget">
+    <h2>Something to point at</h2>
+    <p>
+      Tour steps anchor to elements by CSS selector. Elements here carry
+      <code>data-tour</code> attributes so steps target a stable hook rather than a style
+      class that might be restyled later.
+    </p>
+  </div>
+
+  <p>The <a href="{% url 'settings' %}">Settings page</a> is the second page a multi-page tour can navigate to.</p>
+{% endblock %}

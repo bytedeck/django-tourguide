@@ -1,0 +1,25 @@
+{% extends "demo/base.html" %}
+
+{% block title %}Settings | django-tourguide demo{% endblock %}
+{% block heading %}Settings{% endblock %}
+
+{% block content %}
+  <div class="panel" data-tour="settings-intro">
+    <h2>The second page</h2>
+    <p>
+      A tour step records which page it belongs to. When the next step lives on a different
+      page, the tour saves its position, navigates, and picks up here.
+    </p>
+  </div>
+
+  <div class="panel" data-tour="settings-toggle">
+    <h2>A setting to highlight</h2>
+    <label>
+      <input type="checkbox" checked> Show tutorials
+    </label>
+    <p>
+      Stands in for the per-user toggle a host project would offer, so a tour can point at
+      where someone goes to find the tutorials again.
+    </p>
+  </div>
+{% endblock %}

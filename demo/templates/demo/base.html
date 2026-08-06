@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}django-tourguide demo{% endblock %}</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      line-height: 1.5;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+    }
+    header strong { font-size: 1.1rem; }
+    nav { display: flex; gap: 1rem; }
+    nav a { text-decoration: none; }
+    nav a[aria-current="page"] { font-weight: 600; text-decoration: underline; }
+    main { padding: 1.5rem; max-width: 46rem; }
+    .panel {
+      border: 1px solid rgba(128, 128, 128, 0.35);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <header id="site-header">
+    <strong>tourguide demo</strong>
+    <nav id="site-nav">
+      <a href="{% url 'home' %}" data-tour="nav-home"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a>
+      <a href="{% url 'settings' %}" data-tour="nav-settings"{% if request.resolver_match.url_name == 'settings' %} aria-current="page"{% endif %}>Settings</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <h1>{% block heading %}{% endblock %}</h1>
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block tourguide %}{% endblock %}
+</body>
+</html>
