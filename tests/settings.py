@@ -1,0 +1,52 @@
+"""Settings for the package's own test suite.
+
+Deliberately minimal: this is not the demo project (see ``demo/``), it is the smallest
+configuration in which the apps can be exercised.
+"""
+
+SECRET_KEY = "django-tourguide-test-key-not-used-outside-the-test-suite"
+
+DEBUG = False
+
+USE_TZ = True
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+}
+
+INSTALLED_APPS = [
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.messages",
+    "django.contrib.sessions",
+    "django.contrib.admin",
+    "tourguide",
+    "tourguide.progress",
+]
+
+MIDDLEWARE = [
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+]
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    }
+]
+
+ROOT_URLCONF = "tests.urls"
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

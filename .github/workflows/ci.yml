@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Explicit combinations rather than a cross product, since not every Django release
+      # supports every Python version.
+      matrix:
+        include:
+          - { python: "3.10", django: "4.2" }
+          - { python: "3.11", django: "4.2" }
+          - { python: "3.12", django: "4.2" }
+          - { python: "3.10", django: "5.2" }
+          - { python: "3.11", django: "5.2" }
+          - { python: "3.12", django: "5.2" }
+          - { python: "3.13", django: "5.2" }
+    name: test (py${{ matrix.python }}, dj${{ matrix.django }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e . "Django~=${{ matrix.django }}.0"
+      - run: python -m django test tests
+        env:
+          DJANGO_SETTINGS_MODULE: tests.settings
+
+  demo:
+    # The demo project is part of the deliverable, so a change that breaks it should fail CI
+    # rather than being found the next time someone tries to screenshot a feature.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - run: python demo/manage.py check
+      - run: python demo/manage.py migrate --noinput

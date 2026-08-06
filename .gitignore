@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Demo project database (regenerate with: python demo/manage.py migrate)
+demo/demo.sqlite3
