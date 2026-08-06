@@ -144,6 +144,28 @@ Note that `--settings` has to come *after* the subcommand: `django-admin` reads 
 the command name, so `python -m django --settings=... test` fails with "Unknown command".
 Exporting `DJANGO_SETTINGS_MODULE=tests.settings` works too.
 
+### How pull requests get merged
+
+Pull requests merge themselves. The `Auto-merge` workflow arms GitHub's auto-merge on every
+pull request raised from a branch in this repository, and GitHub then squash-merges it as soon
+as everything `main` requires is satisfied.
+
+What a merge actually waits on is the ruleset on `main`, not that workflow. The ruleset
+requires one status check, `ci-ok`, which is a job in `CI` that succeeds only if `lint`, every
+`test` matrix job, and `demo` all succeeded. Requiring that one name rather than the eight
+underlying jobs keeps the ruleset stable when the matrix changes, and means a job renamed on a
+branch fails the check instead of quietly dropping out of it.
+
+Two things are deliberately left alone. Pull requests from forks are never armed, because the
+review here is automated and auto-merging one could land outside code with nobody having read
+it. And the ruleset does not require branches to be up to date before merging, since these
+pull requests are stacked: with that on, every merge would invalidate the next pull request in
+the stack and force a full re-run.
+
+If the ruleset is ever removed, GitHub has nothing to hold a merge for and refuses to arm
+auto-merge at all. The workflow reports that as a warning rather than merging something
+unchecked, so pull requests fall back to being merged by hand.
+
 ## Why not an existing package
 
 - [`django-tours`](https://github.com/wilmerm/django-tours) is the closest fit and has a good
