@@ -1,4 +1,4 @@
-<!doctype html>
+{% load tourguide %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -45,6 +45,10 @@
     {% block content %}{% endblock %}
   </main>
 
-  {% block tourguide %}{% endblock %}
+  {% comment %}
+  Once, in the base template, so every page can run a tour and a tour can cross between them.
+  Only signed-in users have tours, so there is nothing to load for anyone else.
+  {% endcomment %}
+  {% if user.is_authenticated %}{% tourguide %}{% endif %}
 </body>
 </html>

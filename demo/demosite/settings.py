@@ -27,6 +27,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "tourguide",
     "tourguide.progress",
+    # The demo project itself, so it can carry the `demotour` management command that seeds
+    # the tour there is nothing else here to hang it off.
+    "demosite",
 ]
 
 MIDDLEWARE = [

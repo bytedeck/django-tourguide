@@ -45,7 +45,11 @@ Issues = "https://github.com/bytedeck/django-tourguide/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-tourguide = ["static/tourguide/*", "templates/tourguide/*"]
+# Recursive, because the vendored driver.js sits a directory deeper than the adapter and a
+# single-level glob leaves it out of the wheel. That failure only appears in a project that
+# installed the package properly, which is the one case developing against a source checkout
+# never exercises.
+tourguide = ["static/tourguide/**/*", "templates/tourguide/**/*"]
 
 [tool.ruff]
 line-length = 150

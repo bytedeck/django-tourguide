@@ -4,9 +4,10 @@ Database-driven, multi-page guided tours for Django.
 
 > ### Pre-release: not usable yet
 >
-> **What exists today:** the models, the admin used to author a tour, and the JSON endpoints
-> described below, plus a runnable demo project, a test suite, and CI. There is no renderer
-> yet, so a tour can be built and its spec fetched, but nothing draws it on a page.
+> **What exists today:** tours run. The models, the authoring admin, the JSON endpoints, and
+> the renderer are all in place, including multi-page tours that resume where you left them.
+> Still missing before 0.1.0: a way to ship tour content with your project (`loadtours`) and
+> the release itself.
 >
 > The rest is the plan, landing across
 > [#2](https://github.com/bytedeck/django-tourguide/issues/2) through
@@ -68,6 +69,77 @@ urlpatterns = [
 
 The prefix is yours to choose. Nothing in the package hardcodes it, so the client is told
 where the endpoints live rather than assuming.
+
+## Showing tours on your pages
+
+Load the renderer once, in a base template:
+
+```html
+{% load tourguide %}
+...
+{% if user.is_authenticated %}{% tourguide %}{% endif %}
+</body>
+```
+
+That emits driver.js, the adapter, both stylesheets, and the configuration the client needs.
+Only signed-in users have tours, so there is nothing to load for anyone else.
+
+By default a tour the user has never been offered opens by itself. Pass `{% tourguide
+autostart=False %}` to load the renderer without offering anything, so tours only ever start
+from a button. A half-finished tour still resumes either way: stopping partway and being
+unable to continue is not a useful reading of "no autostart".
+
+To let someone start a tour on purpose, for example to find it again after finishing it:
+
+```html
+{% tourguide_button "getting-started" "Take the tour again" %}
+```
+
+That is a convenience, not the mechanism. The client starts a tour from **any** element
+carrying `data-tourguide-start="<slug>"`, so use your own markup and skip the tag if you would
+rather:
+
+```html
+<a href="#" data-tourguide-start="getting-started" class="dropdown-item">Take the tour</a>
+```
+
+Asking for a tour restarts it from the beginning, including one already finished, which is the
+point of asking again. If its first step is on another page, the browser goes there first.
+
+### Tours that span pages
+
+Each step records the page it belongs to, and the tour crosses between them on its own: when
+the next step lives elsewhere, the adapter saves the position, navigates, and picks the tour up
+on arrival. A step with no page of its own belongs to whatever page the tour is already on,
+which is the usual case for consecutive steps.
+
+Because the position is held on the server rather than in `sessionStorage`, a half-finished
+tour survives a reload, a new tab, and a different browser. On load, a tour resumes only if the
+step it stopped on belongs to the page the user is actually looking at, so it never navigates a
+page somebody chose to open.
+
+A step whose element is missing renders as a centred box and the tour carries on. That happens
+legitimately (the step belongs to another page) and accidentally (a project restyled away the
+thing it pointed at), and neither is worth breaking a tour over. An invalid selector is treated
+the same way and logs a warning naming it.
+
+### Theming
+
+`driver.css` already makes a tour legible, and `tourguide.css` adds only what the package needs
+on top of it. Anything resembling a house style is deliberately left to you. Two class hooks
+are part of the public interface and keep their names:
+
+| | |
+|---|---|
+| `.tourguide-popover` | every step's popover, alongside driver.js's own classes |
+| `.tourguide-button` | the button rendered by `{% tourguide_button %}` |
+
+driver.js's own classes (`.driver-popover-title`, `-description`, `-footer`, `-next-btn`,
+`-prev-btn`, `-close-btn`) are available too. Scope overrides under `.tourguide-popover` so
+they apply to this package's tours and not to another driver.js on the same page.
+
+driver.js 1.8.0 (MIT) is vendored into the app's static files, so there is no CDN and no build
+step: run `collectstatic` and you are done.
 
 ## Using it with django-tenants
 
@@ -240,6 +312,15 @@ python demo/manage.py runserver
 ```
 
 It has two pages, which is what a multi-page tour needs to demonstrate navigation and resume.
+
+Seed a tour that crosses between them, plus a user to view it as:
+
+```bash
+python demo/manage.py demotour     # creates the tour and user 'demo' (password 'demo')
+```
+
+Sign in at `/admin/login/`, then open `/`. The tour starts by itself, crosses to Settings
+partway through, and resumes there if you reload mid-tour.
 
 ## Development
 

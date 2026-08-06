@@ -1,0 +1,42 @@
+/*
+ * Deliberately plain.
+ *
+ * driver.css already makes a tour legible, so this adds only what the package needs on top of
+ * it and stops. Anything that looks like a house style belongs to the project using this, not
+ * here: a package that ships opinions about colour is a package every project has to fight.
+ *
+ * The hooks below are the supported way to restyle a tour. They are part of the public
+ * interface, so they keep their names:
+ *
+ *   .tourguide-popover   every step's popover, added to driver.js's own classes
+ *   .tourguide-button    the button rendered by {% tourguide_button %}
+ *
+ * driver.js's own classes (.driver-popover-title, -description, -footer, -next-btn,
+ * -prev-btn, -close-btn) are also available, and are documented by driver.js rather than
+ * here. Scope any override under .tourguide-popover so it applies to this package's tours
+ * and not to another driver.js on the same page.
+ */
+
+/* Long step text is normal, so the popover grows to fit rather than scrolling inside itself. */
+.tourguide-popover {
+  max-width: 24rem;
+}
+
+/* Step content is authored HTML, so it arrives with paragraphs and lists in it. */
+.tourguide-popover .driver-popover-description > :first-child {
+  margin-top: 0;
+}
+
+.tourguide-popover .driver-popover-description > :last-child {
+  margin-bottom: 0;
+}
+
+/*
+ * Unstyled apart from being clearly clickable. It inherits the surrounding font rather than
+ * the browser's default button font, which is the one thing that would otherwise make it look
+ * foreign on every site that uses it.
+ */
+.tourguide-button {
+  font: inherit;
+  cursor: pointer;
+}
