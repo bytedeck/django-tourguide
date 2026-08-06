@@ -23,7 +23,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
+      # Pinned to a minor: ruff is a 0.x tool and a new release can add rules, which would
+      # fail CI on a change nobody made.
+      - run: pip install "ruff>=0.16.1,<0.17"
       - run: ruff check .
 
   test:

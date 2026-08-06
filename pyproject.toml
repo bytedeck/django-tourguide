@@ -46,10 +46,16 @@ tourguide = ["static/tourguide/*", "templates/tourguide/*"]
 [tool.ruff]
 line-length = 150
 extend-exclude = ["*/migrations/*"]
+target-version = "py310"
 
 [tool.ruff.lint]
-# pycodestyle, pyflakes, bugbear and comprehensions, matching the bytedeck house style.
-extend-select = ["B", "C4"]
+# E/W = pycodestyle, F = pyflakes, B = flake8-bugbear, C4 = flake8-comprehensions,
+# matching the bytedeck house style.
+#
+# `select` rather than `extend-select`: extend-select adds to whatever ruff's default set
+# happens to be, which is both large (400+ rules) and free to change between releases. Being
+# explicit keeps a ruff upgrade from failing CI on rules nobody chose.
+select = ["E", "W", "F", "B", "C4"]
 
 [tool.coverage.run]
 source = ["src/tourguide"]

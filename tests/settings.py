@@ -49,4 +49,8 @@ TEMPLATES = [
 
 ROOT_URLCONF = "tests.urls"
 
+# The admin templates reference {% static %}, so this has to be set even though the test
+# suite never serves a static file.
+STATIC_URL = "static/"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
