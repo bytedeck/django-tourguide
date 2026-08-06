@@ -150,6 +150,14 @@ Pull requests merge themselves. The `Auto-merge` workflow arms GitHub's auto-mer
 pull request raised from a branch in this repository, and GitHub then squash-merges it as soon
 as everything `main` requires is satisfied.
 
+Two repository settings have to be in place for that, and the workflow does nothing useful
+without either:
+
+- **Settings → General → Pull Requests → Allow auto-merge**, which is what permits auto-merge
+  to be armed at all.
+- **A ruleset on `main` requiring the `ci-ok` status check**, which is what a merge then waits
+  for.
+
 What a merge actually waits on is the ruleset on `main`, not that workflow. The ruleset
 requires one status check, `ci-ok`, which is a job in `CI` that succeeds only if `lint`, every
 `test` matrix job, and `demo` all succeeded. Requiring that one name rather than the eight
@@ -162,9 +170,20 @@ it. And the ruleset does not require branches to be up to date before merging, s
 pull requests are stacked: with that on, every merge would invalidate the next pull request in
 the stack and force a full re-run.
 
-If the ruleset is ever removed, GitHub has nothing to hold a merge for and refuses to arm
-auto-merge at all. The workflow reports that as a warning rather than merging something
-unchecked, so pull requests fall back to being merged by hand.
+GitHub refuses to arm auto-merge whenever it has nothing left to hold a merge for, which it
+reports as "clean status". That happens for two opposite reasons, so the workflow decides
+between them on the evidence rather than assuming:
+
+- **The checks have already passed**, which is normal on a pull request taken out of draft, or
+  reopened, after CI has finished. There is nothing to wait for because the waiting is over, so
+  the workflow merges it.
+- **Nothing was ever required**, because the ruleset is missing. Merging here would land code
+  that was never checked, so the workflow warns and leaves the pull request to be merged by
+  hand.
+
+It tells the two apart by asking whether `ci-ok` itself passed on the head commit. Reading the
+ruleset would answer that more directly, but a workflow cannot: the built-in token cannot be
+granted administration scope, so rulesets are not readable from CI at all.
 
 ## Why not an existing package
 

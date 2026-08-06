@@ -19,6 +19,9 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # To read whether `ci-ok` passed on the head commit, which is how the last step below tells
+  # an already-mergeable pull request apart from a repository with nothing gating merges.
+  checks: read
 
 # A pull request pushed to several times in a row only needs the newest attempt.
 concurrency:
@@ -40,6 +43,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.html_url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           # GitHub decides asynchronously whether a pull request is blocked, and refuses to arm
           # auto-merge while it still thinks there is nothing to wait for. On a pull request
@@ -54,13 +58,26 @@ jobs:
             sleep $((attempt * 15))
           done
 
-          # Still refused after the state settled. If GitHub says the pull request is already
-          # clean, it has no required checks to wait for, which means the ruleset on `main` is
-          # missing rather than this pull request being broken. Say so instead of failing, and
-          # leave the merge to a human, since arming nothing would be the same as merging
-          # unchecked.
-          if grep -qi 'clean status' <<<"$output"; then
-            echo "::warning::Auto-merge was refused because GitHub has nothing to wait for. Add a ruleset on 'main' requiring the 'ci-ok' status check, then reopen or push to this pull request."
+          # Still refused after the state settled, so this is not a timing artefact.
+          if ! grep -qi 'clean status' <<<"$output"; then
+            exit 1
+          fi
+
+          # "Clean status" means GitHub has nothing left to hold the merge for. That covers two
+          # situations which want opposite responses: the checks have already passed, so the
+          # pull request should simply be merged; or nothing was ever required, so merging
+          # would land code that was never checked. Decide on the evidence rather than
+          # guessing, by asking whether `ci-ok` itself is recorded green against this commit.
+          #
+          # Reading the ruleset would answer the question more directly but is not available
+          # here: the built-in token cannot be granted administration scope, so a workflow
+          # cannot read a repository's rulesets at all.
+          if gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/check-runs" \
+               --jq '.check_runs[] | select(.name == "ci-ok") | .conclusion' | grep -qx success; then
+            echo "ci-ok already passed on ${SHA}, so there was nothing left to wait for. Merging."
+            gh pr merge --squash "$PR"
             exit 0
           fi
-          exit 1
+
+          echo "::warning::Auto-merge was refused and 'ci-ok' has not passed on ${SHA}, so nothing is gating merges on this repository. Add a ruleset on 'main' requiring the 'ci-ok' status check, then reopen or push to this pull request. Leaving this one to be merged by hand."
+          exit 0
