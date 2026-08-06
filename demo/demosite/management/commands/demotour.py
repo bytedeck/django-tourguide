@@ -1,89 +1,40 @@
-"""Seed the demo project with a tour that spans both pages, and a user to run it as.
+"""Set the demo project up: import its tour, and create a user to view it as.
 
-The tour is the point of the demo: it crosses from Home to Settings partway through, which is
-what actually exercises navigation and resume. Everything before the crossing is scenery.
+The tour itself lives in ``demosite/fixtures/tours/getting-started.json`` and is imported by
+``loadtours``, which is how a real project ships tour content. This command is the two lines
+around that which are specific to running a demo.
 """
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
-
-from tourguide.models import Step, Tour
-
-TOUR = {
-    "slug": "getting-started",
-    "name": "Getting started",
-    "description": "A short tour that crosses from one page to another.",
-    "icon": "compass",
-}
-
-# `url_name` rather than a literal path, since that is what a real project would write and it
-# is the case worth demonstrating: the server reverses it, so the client never has to.
-STEPS = [
-    {
-        "order": 0,
-        "title": "Welcome",
-        "content": "<p>This tour runs across two pages. Use <b>Next</b> to move through it.</p>",
-        "url_name": "home",
-    },
-    {
-        "order": 1,
-        "element": "[data-tour='home-intro']",
-        "title": "Where you are",
-        "content": "<p>The tour anchors to elements by CSS selector, so it points at real controls.</p>",
-        "side": "bottom",
-    },
-    {
-        "order": 2,
-        "element": "[data-tour='home-widget']",
-        "title": "Something to point at",
-        "content": "<p>Steps with no page of their own stay on whatever page the tour is already on.</p>",
-        "side": "bottom",
-    },
-    {
-        "order": 3,
-        "element": "[data-tour='settings-intro']",
-        "title": "A different page",
-        "content": (
-            "<p>This step lives on the Settings page, so choosing <b>Next</b> on the previous step "
-            "saved your position and brought you here. Reload now and the tour picks up where it "
-            "left off, because the position is on the server rather than in this tab.</p>"
-        ),
-        "url_name": "settings",
-        "side": "bottom",
-    },
-    {
-        "order": 4,
-        "element": "[data-tour='settings-toggle']",
-        "title": "Finding it again",
-        "content": "<p>A host project would put its own control here. Finishing marks the tour complete.</p>",
-        "side": "bottom",
-    },
-]
 
 
 class Command(BaseCommand):
-    """Create (or refresh) the demo tour and a user to view it as."""
+    """Import the demo tour and make sure there is somebody to view it as."""
 
-    help = "Seed the demo tour and a demo user."
+    help = "Set up the demo: import the tour and create the demo user."
+
+    def add_arguments(self, parser):
+        """Pass `--force` through, since re-running after editing the tour is the usual case."""
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Re-import the tour even if it has been edited in the admin.",
+        )
 
     def handle(self, *args, **options):
-        """Replace any existing demo tour, then make sure the demo user exists."""
-        tour, created = Tour.objects.update_or_create(slug=TOUR["slug"], defaults=TOUR)
-
-        # Steps are replaced wholesale rather than matched up: this is seed data, and the
-        # unique constraint on (tour, order) makes a partial update fiddly for no benefit.
-        tour.steps.all().delete()
-        for step in STEPS:
-            Step.objects.create(tour=tour, **step)
-
-        self.stdout.write(self.style.SUCCESS(f"{'Created' if created else 'Updated'} tour '{tour.slug}' with {len(STEPS)} steps."))
+        """Import the tour by fixture name, then create the demo user if it is missing."""
+        # By name rather than by path: the fixture ships inside this app, which is the
+        # arrangement a real project would use.
+        call_command("loadtours", "getting-started", force=options["force"], stdout=self.stdout)
 
         user_model = get_user_model()
-        user, user_created = user_model.objects.get_or_create(
+        user, created = user_model.objects.get_or_create(
             username="demo",
             defaults={"is_staff": True, "is_superuser": True},
         )
-        if user_created:
+        if created:
             user.set_password("demo")
             user.save()
             self.stdout.write(self.style.SUCCESS("Created user 'demo' with password 'demo'."))

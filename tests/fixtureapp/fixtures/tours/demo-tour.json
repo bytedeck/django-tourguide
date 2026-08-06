@@ -1,0 +1,16 @@
+{
+  "tours": [
+    {
+      "slug": "packaged-demo",
+      "name": "Packaged demo",
+      "description": "Ships inside an app, which is how a release carries its tours.",
+      "steps": [
+        {
+          "order": 0,
+          "title": "Found by name",
+          "content": "<p>Loaded as <code>loadtours demo-tour</code>, without anyone naming a path.</p>"
+        }
+      ]
+    }
+  ]
+}

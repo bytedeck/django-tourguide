@@ -1,0 +1,47 @@
+{
+  "tours": [
+    {
+      "slug": "getting-started",
+      "name": "Getting started",
+      "description": "A short tour that crosses from one page to another.",
+      "icon": "compass",
+      "steps": [
+        {
+          "order": 0,
+          "title": "Welcome",
+          "content": "<p>This tour runs across two pages. Use <b>Next</b> to move through it.</p>",
+          "url_name": "home"
+        },
+        {
+          "order": 1,
+          "element": "[data-tour='home-intro']",
+          "title": "Where you are",
+          "content": "<p>The tour anchors to elements by CSS selector, so it points at real controls.</p>",
+          "side": "bottom"
+        },
+        {
+          "order": 2,
+          "element": "[data-tour='home-widget']",
+          "title": "Something to point at",
+          "content": "<p>Steps with no page of their own stay on whatever page the tour is already on.</p>",
+          "side": "bottom"
+        },
+        {
+          "order": 3,
+          "element": "[data-tour='settings-intro']",
+          "title": "A different page",
+          "content": "<p>This step lives on the Settings page, so choosing <b>Next</b> on the previous step saved your position and brought you here. Reload now and the tour picks up where it left off, because the position is on the server rather than in this tab.</p>",
+          "url_name": "settings",
+          "side": "bottom"
+        },
+        {
+          "order": 4,
+          "element": "[data-tour='settings-toggle']",
+          "title": "Finding it again",
+          "content": "<p>A host project would put its own control here. Finishing marks the tour complete.</p>",
+          "side": "bottom"
+        }
+      ]
+    }
+  ]
+}

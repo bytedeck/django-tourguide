@@ -25,6 +25,9 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "tourguide",
     "tourguide.progress",
+    # Ships a tour fixture and nothing else, so a test can show `loadtours` finding content
+    # by name inside an installed app rather than only by path.
+    "tests.fixtureapp",
 ]
 
 MIDDLEWARE = [
