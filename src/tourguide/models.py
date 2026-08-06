@@ -136,12 +136,8 @@ class Step(models.Model):
             # `clean()` rejects this too, but only on validated saves. Steps also arrive from
             # fixtures, data migrations, and bulk writes, none of which validate, and a row
             # with both set would silently ignore its path.
-            #
-            # `check=` rather than `condition=`: Django 5.1 renamed the argument and 4.2 does
-            # not accept the new name, so this is the only spelling that works across the
-            # versions this package supports. Revisit when the floor moves past 5.1.
             models.CheckConstraint(
-                check=models.Q(url_name="") | models.Q(path=""),
+                condition=models.Q(url_name="") | models.Q(path=""),
                 name="tourguide_step_single_page_reference",
             ),
         ]

@@ -14,15 +14,18 @@ license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Bytedeck Learning Society" }]
 keywords = ["django", "tour", "onboarding", "walkthrough", "tutorial", "driver.js"]
-dependencies = ["Django>=4.2"]
+# 5.2 is the oldest Django still receiving support (4.2 and 5.1 both reached end of life
+# earlier in 2026). It is also the first release in the supported range to accept
+# `CheckConstraint(condition=...)`, which replaced `check=`.
+dependencies = ["Django>=5.2"]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
     "Framework :: Django",
-    "Framework :: Django :: 4.2",
-    "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
