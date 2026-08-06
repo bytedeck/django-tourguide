@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class TourguideProgressConfig(AppConfig):
-    """The per-user progress app, holding the ``TourProgress`` model.
+    """The per-user progress app, which will hold the ``TourProgress`` model.
 
     Under django-tenants this app belongs in ``TENANT_APPS`` only, because ``TourProgress``
     foreign-keys the user model and each tenant schema has its own users.

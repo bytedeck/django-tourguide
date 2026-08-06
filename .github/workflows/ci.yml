@@ -1,5 +1,11 @@
 name: CI
 
+# `pip install -e .` below runs build code from the checked-out branch, which on a pull request
+# is whatever the contributor wrote. Without this block the token inherits the repository
+# default, which is write-capable.
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -10,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Nothing here pushes, so there is no reason to leave the token in .git/config where
+          # build or test code could read it.
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -34,6 +44,10 @@ jobs:
     name: test (py${{ matrix.python }}, dj${{ matrix.django }})
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Nothing here pushes, so there is no reason to leave the token in .git/config where
+          # build or test code could read it.
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
@@ -48,6 +62,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Nothing here pushes, so there is no reason to leave the token in .git/config where
+          # build or test code could read it.
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

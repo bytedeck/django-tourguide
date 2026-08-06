@@ -2,21 +2,29 @@
 
 Database-driven, multi-page guided tours for Django.
 
-Tours and their steps are ordinary Django models, so they are built and edited in the admin
-rather than hardcoded. A tour can span several pages: each step records the page it belongs
-to, and the tour navigates there and resumes when the user moves on to it. Progress is stored
-per user on the server, so a half-finished tour survives a reload, a new tab, or a different
-browser.
-
-Rendering uses [driver.js](https://github.com/nilbuild/driver.js) (MIT, no runtime
-dependencies), vendored into the package. Nothing about the models or endpoints is specific to
-it: the server emits a JSON tour spec and a small adapter drives the renderer, so a different
-renderer is a second adapter rather than a rewrite.
-
-> **Status: pre-release.** The models, endpoints, and renderer land across
+> ### Pre-release: not usable yet
+>
+> **What exists today:** an installable package containing two empty Django apps, a runnable
+> demo project, a test suite, and CI. There are no models, no endpoints, and no renderer, so
+> there is nothing to author a tour with and nothing to run.
+>
+> Everything described below is the plan, landing across
 > [#2](https://github.com/bytedeck/django-tourguide/issues/2) through
-> [#8](https://github.com/bytedeck/django-tourguide/issues/8). This README describes install
-> and layout; the authoring and theming guides arrive with the features they document.
+> [#8](https://github.com/bytedeck/django-tourguide/issues/8). Installing it now gets you two
+> app entries in `INSTALLED_APPS` and nothing else. This banner comes off at 0.1.0.
+
+## What it will do
+
+Tours and their steps will be ordinary Django models, so they are built and edited in the
+admin rather than hardcoded. A tour will be able to span several pages: each step records the
+page it belongs to, and the tour navigates there and resumes when the user reaches it.
+Progress will be stored per user on the server, so a half-finished tour survives a reload, a
+new tab, or a different browser.
+
+Rendering will use [driver.js](https://github.com/nilbuild/driver.js) (MIT, no runtime
+dependencies), vendored into the package. Nothing about the models or endpoints will be
+specific to it: the server emits a JSON tour spec and a small adapter drives the renderer, so
+a different renderer is a second adapter rather than a rewrite.
 
 ## Requirements
 
@@ -61,6 +69,16 @@ TENANT_APPS = (
     ...
     "tourguide.progress",  # per-user progress, in each tenant schema
 )
+
+# django-tenants still expects INSTALLED_APPS to be the union of the two, without duplicates.
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+```
+
+Then migrate both halves:
+
+```bash
+python manage.py migrate_schemas --shared   # tour definitions, into the public schema
+python manage.py migrate_schemas --tenant   # progress, into each tenant schema
 ```
 
 This works because django-tenants composes `search_path` as `[tenant_schema, public]`, so a
@@ -70,13 +88,29 @@ every schema.
 
 Two things to know:
 
-- **Do not list `tourguide` in both.** An app named in both lists gets its tables built in
-  both, and the empty per-tenant copy would then shadow the populated public one.
+- **Do not list `tourguide` in both `SHARED_APPS` and `TENANT_APPS`.** An app named in both
+  gets its tables built in both, and the empty per-tenant copy would then shadow the populated
+  public one.
 - **Progress must stay tenant-side.** It foreign-keys the user model, and each tenant schema
-  has its own users. For the same reason `TourProgress` refers to its tour by slug rather than
-  by foreign key, since a cross-schema foreign key is not possible. That turns out to be the
-  right call regardless: re-importing shipped content would otherwise cascade-delete
-  everyone's progress.
+  has its own users.
+
+### Why progress refers to its tour by slug
+
+`TourProgress` stores a tour slug rather than a `ForeignKey`. This is a deliberate design
+choice, not a database restriction. PostgreSQL is perfectly capable of a constraint that
+crosses schemas, and django-tenants puts `public` on the search path, so such a constraint can
+even be created. What breaks is everything around it: a relation spanning the shared/tenant
+boundary is not something django-tenants models, `migrate_schemas` runs per schema, and
+deleting a shared `Tour` sends Django's deletion collector looking for related rows in tenant
+tables it cannot see from the public context.
+
+So the slug carries **no database constraint**, and referential integrity is the application's
+concern instead. In practice that means a progress row can outlive the tour it names, and the
+resolver returns nothing rather than raising when that happens.
+
+That is the behaviour we want regardless of multitenancy: shipped tour content gets re-imported
+whenever it is updated, and a real foreign key would cascade-delete everyone's progress each
+time.
 
 ## Demo project
 
@@ -95,9 +129,13 @@ It has two pages, which is what a multi-page tour needs to demonstrate navigatio
 
 ```bash
 pip install -e .
-python -m django test tests   # with DJANGO_SETTINGS_MODULE=tests.settings
+python -m django test tests --settings=tests.settings
 ruff check .
 ```
+
+Note that `--settings` has to come *after* the subcommand: `django-admin` reads `argv[1]` as
+the command name, so `python -m django --settings=... test` fails with "Unknown command".
+Exporting `DJANGO_SETTINGS_MODULE=tests.settings` works too.
 
 ## Why not an existing package
 

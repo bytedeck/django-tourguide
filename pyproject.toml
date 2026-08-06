@@ -1,5 +1,7 @@
 [build-system]
-requires = ["setuptools>=68"]
+# 77 is the first release supporting PEP 639, which `project.license` as an SPDX string and
+# `project.license-files` below both depend on. An older backend fails the isolated build.
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
