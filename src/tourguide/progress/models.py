@@ -84,26 +84,39 @@ class TourProgress(models.Model):
 
         Only ever moves forward. Stepping backwards through a tour is normal, and letting it
         rewind the stored position would resume someone earlier than they actually got.
+
+        The guard is in the ``WHERE`` clause rather than in Python, so the comparison is made
+        against the row as it is now rather than against whatever this instance was loaded
+        with. Two tabs open on the same tour are enough to have two instances in play, and a
+        read-then-write would let the one that loaded earlier undo the other.
         """
-        if step_order > self.last_step:
+        updated = type(self).objects.filter(pk=self.pk, last_step__lt=step_order).update(last_step=step_order)
+        if updated:
             self.last_step = step_order
-            self.save(update_fields=["last_step"])
+        else:
+            self.refresh_from_db(fields=["last_step"])
 
     def mark_completed(self):
         """Record that the user reached the end of the tour.
 
         Idempotent: the first completion time is kept, since a repeat run should not rewrite
-        when the tour was originally finished.
+        when the tour was originally finished. As with :meth:`record_step`, the "only if not
+        already set" test is made by the database rather than against this instance's copy.
         """
-        if self.completed_at is None:
-            self.completed_at = timezone.now()
-            self.save(update_fields=["completed_at"])
+        self._stamp_once("completed_at")
 
     def mark_dismissed(self):
         """Record that the user closed the tour early.
 
         Idempotent for the same reason as :meth:`mark_completed`.
         """
-        if self.dismissed_at is None:
-            self.dismissed_at = timezone.now()
-            self.save(update_fields=["dismissed_at"])
+        self._stamp_once("dismissed_at")
+
+    def _stamp_once(self, field):
+        """Set ``field`` to now, but only if the stored row has not already set it."""
+        now = timezone.now()
+        updated = type(self).objects.filter(pk=self.pk, **{f"{field}__isnull": True}).update(**{field: now})
+        if updated:
+            setattr(self, field, now)
+        else:
+            self.refresh_from_db(fields=[field])

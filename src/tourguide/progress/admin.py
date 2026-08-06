@@ -29,6 +29,14 @@ class TourProgressAdmin(admin.ModelAdmin):
         """Progress is a record of what happened, so it is not editable."""
         return False
 
+    def has_delete_permission(self, request, obj=None):
+        """Progress is a record of what happened, so it is not deletable either.
+
+        Deleting a record does not merely hide it: the absence of one is what makes a tour
+        auto-start, so removing a row silently re-offers a tour the user already dismissed.
+        """
+        return False
+
     @admin.display(description="Outcome")
     def outcome(self, obj):
         """Whether the user finished, gave up, or is still going.

@@ -151,6 +151,32 @@ class TourProgressRecordStepTests(TestCase):
         self.progress.refresh_from_db()
         self.assertEqual(self.progress.last_step, 4)
 
+    def test_record_step__a_stale_instance_cannot_rewind_the_row(self):
+        """A second instance loaded earlier cannot undo progress made by the first.
+
+        Two tabs open on the same tour are enough to have two instances in play. Comparing
+        against this instance's copy rather than the stored row would let whichever request
+        loaded earlier write the lower value last.
+        """
+        ahead = TourProgress.objects.get(pk=self.progress.pk)
+        behind = TourProgress.objects.get(pk=self.progress.pk)
+
+        ahead.record_step(5)
+        behind.record_step(3)
+
+        self.progress.refresh_from_db()
+        self.assertEqual(self.progress.last_step, 5)
+
+    def test_record_step__a_stale_instance_catches_up_after_a_refused_write(self):
+        """The instance whose write was refused still ends up holding the true value."""
+        ahead = TourProgress.objects.get(pk=self.progress.pk)
+        behind = TourProgress.objects.get(pk=self.progress.pk)
+        ahead.record_step(5)
+
+        behind.record_step(3)
+
+        self.assertEqual(behind.last_step, 5)
+
 
 class TourProgressOutcomeTests(TestCase):
     """Completion and dismissal, which are deliberately distinct."""
@@ -218,6 +244,36 @@ class TourProgressOutcomeTests(TestCase):
 
         self.progress.refresh_from_db()
         self.assertEqual(self.progress.dismissed_at, first)
+
+    def test_mark_completed__a_stale_instance_cannot_replace_the_timestamp(self):
+        """A second instance that still believes the tour is unfinished cannot restamp it.
+
+        Testing "already set?" against this instance's copy rather than the stored row would
+        let a concurrent request overwrite the original completion time.
+        """
+        first = TourProgress.objects.get(pk=self.progress.pk)
+        second = TourProgress.objects.get(pk=self.progress.pk)
+        first.mark_completed()
+        original = TourProgress.objects.get(pk=self.progress.pk).completed_at
+
+        second.mark_completed()
+
+        self.progress.refresh_from_db()
+        self.assertEqual(self.progress.completed_at, original)
+        self.assertEqual(second.completed_at, original)
+
+    def test_mark_dismissed__a_stale_instance_cannot_replace_the_timestamp(self):
+        """Dismissal is guarded the same way, for the same reason."""
+        first = TourProgress.objects.get(pk=self.progress.pk)
+        second = TourProgress.objects.get(pk=self.progress.pk)
+        first.mark_dismissed()
+        original = TourProgress.objects.get(pk=self.progress.pk).dismissed_at
+
+        second.mark_dismissed()
+
+        self.progress.refresh_from_db()
+        self.assertEqual(self.progress.dismissed_at, original)
+        self.assertEqual(second.dismissed_at, original)
 
     def test_is_finished__false_while_in_progress(self):
         """Someone partway through has not finished, so the tour may still resume."""

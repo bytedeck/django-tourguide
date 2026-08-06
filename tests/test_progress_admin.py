@@ -52,6 +52,30 @@ class TourProgressAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_deleting_is_not_offered(self):
+        """Progress cannot be deleted, not even by a superuser.
+
+        Deleting a record does not merely hide it: the absence of one is what makes a tour
+        auto-start, so removing a row would silently re-offer a tour the user dismissed.
+        """
+        response = self.client.get(
+            reverse("admin:tourguide_progress_tourprogress_delete", args=[self.finished.pk])
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(TourProgress.objects.filter(pk=self.finished.pk).exists())
+
+    def test_delete_is_not_offered_as_a_bulk_action(self):
+        """The changelist offers no bulk actions, so there is no way round the delete view.
+
+        Django only builds an action form when at least one action is available. Deletion is
+        the sole action registered by default here, so refusing delete permission leaves none
+        and the form is not rendered at all.
+        """
+        response = self.client.get(reverse("admin:tourguide_progress_tourprogress_changelist"))
+
+        self.assertIsNone(response.context["action_form"])
+
     def test_editing_is_not_offered(self):
         """Progress records what happened, so it is not editable.
 
