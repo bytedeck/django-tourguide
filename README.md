@@ -4,9 +4,9 @@ Database-driven, multi-page guided tours for Django.
 
 > ### Pre-release: not usable yet
 >
-> **What exists today:** tours run. The models, the authoring admin, the JSON endpoints, and
-> the renderer are all in place, including multi-page tours that resume where you left them.
-> Still missing before 0.1.0: a way to ship tour content with your project (`loadtours`) and
+> **What exists today:** everything except the release. The models, the authoring admin, the
+> JSON endpoints, the renderer (including multi-page tours that resume where you left them),
+> and `loadtours` for shipping content are all in place. What is left before 0.1.0 is cutting
 > the release itself.
 >
 > The rest is the plan, landing across
@@ -140,6 +140,59 @@ they apply to this package's tours and not to another driver.js on the same page
 
 driver.js 1.8.0 (MIT) is vendored into the app's static files, so there is no CDN and no build
 step: run `collectstatic` and you are done.
+
+## Shipping tour content
+
+Tours live in the database so they can be edited, but they are also product content that ships
+with a release. `loadtours` reconciles those two facts:
+
+```bash
+python manage.py loadtours getting-started      # a fixture inside an installed app
+python manage.py loadtours path/to/tours.json   # or a path
+```
+
+A fixture is JSON, and only has to say what it cares about:
+
+```json
+{
+  "tours": [
+    {
+      "slug": "quests",
+      "name": "Quests",
+      "audience": "staff",
+      "steps": [
+        {"order": 0, "title": "Your quests", "content": "<p>Everything you can work on.</p>",
+         "element": "#quests-menu", "url_name": "quests:list"}
+      ]
+    }
+  ]
+}
+```
+
+Named fixtures are looked up in the `fixtures/tours/` directory of each installed app, the way
+`loaddata` works, so a release carries its tours rather than a deployment step having to know
+where they live.
+
+**It is an upsert, not a load.** Tours match on slug and steps on order, so running it twice
+changes nothing the second time, leaves primary keys alone, and never disturbs progress
+records. Steps added to a fixture appear; steps removed from it go.
+
+**A deck's own edits are not thrown away.** Each import stamps the tour with a fingerprint of
+what was written. On the next run, a tour whose content no longer matches its fingerprint has
+been edited locally, and is left alone with a message saying so. `--force` overrides that. A
+tour nobody imported is treated the same way, since it is somebody's own work either way.
+
+```console
+$ python manage.py loadtours getting-started
+  skip     getting-started (edited since import, use --force to replace)
+1 skipped
+```
+
+`--dry-run` reports what would change and writes nothing. The whole run is one transaction, so
+a fixture that fails partway through leaves the database as it was rather than half-updated.
+
+This is also what makes the shared-schema arrangement below practical: updating tour content
+becomes one command run rather than a data migration for every tenant.
 
 ## Using it with django-tenants
 
@@ -316,8 +369,11 @@ It has two pages, which is what a multi-page tour needs to demonstrate navigatio
 Seed a tour that crosses between them, plus a user to view it as:
 
 ```bash
-python demo/manage.py demotour     # creates the tour and user 'demo' (password 'demo')
+python demo/manage.py demotour     # imports the tour and creates user 'demo' (password 'demo')
 ```
+
+That imports `demosite/fixtures/tours/getting-started.json` through `loadtours`, which is how
+a real project ships tour content, and creates a user to view it as.
 
 Sign in at `/admin/login/`, then open `/`. The tour starts by itself, crosses to Settings
 partway through, and resumes there if you reload mid-tour.

@@ -5,9 +5,22 @@ per-user state, which is what allows them to live in a shared schema under djang
 while progress is tracked per tenant (see ``tourguide.progress``).
 """
 
+import hashlib
+import json
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import NoReverseMatch, reverse
+
+#: Tour fields that shipped content owns, and therefore that ``loadtours`` writes.
+#:
+#: The list is here rather than in the command because it also defines what a tour's
+#: fingerprint covers, and the two have to agree: a field imported but left out of the
+#: fingerprint would be overwritten without ever counting as an edit.
+IMPORTED_TOUR_FIELDS = ("name", "description", "icon", "audience", "is_active", "order")
+
+#: Step fields that shipped content owns. Same reasoning as above.
+IMPORTED_STEP_FIELDS = ("order", "element", "title", "content", "side", "align", "url_name", "url_args", "path")
 
 
 class Tour(models.Model):
@@ -51,12 +64,48 @@ class Tour(models.Model):
         help_text="Uncheck to withdraw the tour without deleting it or anyone's progress.",
     )
     order = models.PositiveIntegerField(default=0, help_text="Sort order when several tours are offered.")
+    import_checksum = models.CharField(
+        max_length=64,
+        blank=True,
+        editable=False,
+        help_text="Fingerprint of this tour as `loadtours` last wrote it. Blank for a tour written by hand.",
+    )
 
     class Meta:
         ordering = ["order", "name"]
 
     def __str__(self):
         return self.name
+
+    def as_import_data(self):
+        """This tour and its steps in the shape a fixture uses.
+
+        The same shape `loadtours` reads, so a tour can be compared against a fixture without
+        either side having to know how the other is spelled.
+        """
+        return {
+            "slug": self.slug,
+            **{field: getattr(self, field) for field in IMPORTED_TOUR_FIELDS},
+            "steps": [{field: getattr(step, field) for field in IMPORTED_STEP_FIELDS} for step in self.steps.all()],
+        }
+
+    def content_checksum(self):
+        """A fingerprint of the content shipped content owns.
+
+        Covers exactly the fields `loadtours` writes, which is what lets it tell an edited
+        tour from an untouched one: re-importing identical content leaves this unchanged,
+        while an admin editing any of it does not.
+        """
+        payload = json.dumps(self.as_import_data(), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(payload.encode()).hexdigest()
+
+    def is_locally_edited(self):
+        """Whether this tour has diverged from what was last imported.
+
+        A tour with no checksum was written by hand rather than imported, which counts as
+        locally owned for the same reason: overwriting it would destroy somebody's work.
+        """
+        return self.content_checksum() != self.import_checksum
 
     def is_visible_to(self, user):
         """Return whether ``user`` may be offered this tour.
