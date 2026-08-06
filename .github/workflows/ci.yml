@@ -10,6 +10,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual trigger. GitHub can drop a `pull_request` event during an Actions incident,
+  # leaving a branch with no run at all and no way to ask for one, which happened while this
+  # workflow was being written. Cancelling and re-running only works on a run that exists.
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -23,7 +27,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
+      # Pinned to a minor: ruff is a 0.x tool and a new release can add rules, which would
+      # fail CI on a change nobody made.
+      - run: pip install "ruff>=0.16.1,<0.17"
       - run: ruff check .
 
   test:
@@ -31,16 +37,17 @@ jobs:
     strategy:
       fail-fast: false
       # Explicit combinations rather than a cross product, since not every Django release
-      # supports every Python version.
+      # supports every Python version: 5.2 covers 3.10 to 3.14, while 6.0 and 6.1 start at
+      # 3.12. Both ends of each Django's Python range are tested rather than every point in
+      # it, so the declared support is backed by a job at each boundary.
       matrix:
         include:
-          - { python: "3.10", django: "4.2" }
-          - { python: "3.11", django: "4.2" }
-          - { python: "3.12", django: "4.2" }
           - { python: "3.10", django: "5.2" }
-          - { python: "3.11", django: "5.2" }
-          - { python: "3.12", django: "5.2" }
-          - { python: "3.13", django: "5.2" }
+          - { python: "3.14", django: "5.2" }
+          - { python: "3.12", django: "6.0" }
+          - { python: "3.14", django: "6.0" }
+          - { python: "3.12", django: "6.1" }
+          - { python: "3.14", django: "6.1" }
     name: test (py${{ matrix.python }}, dj${{ matrix.django }})
     steps:
       - uses: actions/checkout@v4

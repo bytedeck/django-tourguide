@@ -1,6 +1,13 @@
 """URL configuration for the test suite.
 
-Empty for now. Later phases add the tour endpoints here as they are introduced.
+The admin is included so that tests have a URL name which genuinely reverses, which is what
+`Step.url_name` validation needs to be tested against. Later phases add the tour endpoints
+here as they are introduced.
 """
 
-urlpatterns = []
+from django.contrib import admin
+from django.urls import path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+]

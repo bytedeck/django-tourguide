@@ -14,15 +14,18 @@ license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Bytedeck Learning Society" }]
 keywords = ["django", "tour", "onboarding", "walkthrough", "tutorial", "driver.js"]
-dependencies = ["Django>=4.2"]
+# 5.2 is the oldest Django still receiving support: 5.1 reached end of life on 2025-12-03
+# and 4.2 on 2026-04-07. It is also the first release in the supported range to accept
+# `CheckConstraint(condition=...)`, which replaced `check=`.
+dependencies = ["Django>=5.2"]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
     "Framework :: Django",
-    "Framework :: Django :: 4.2",
-    "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -30,6 +33,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 
@@ -46,10 +50,16 @@ tourguide = ["static/tourguide/*", "templates/tourguide/*"]
 [tool.ruff]
 line-length = 150
 extend-exclude = ["*/migrations/*"]
+target-version = "py310"
 
 [tool.ruff.lint]
-# pycodestyle, pyflakes, bugbear and comprehensions, matching the bytedeck house style.
-extend-select = ["B", "C4"]
+# E/W = pycodestyle, F = pyflakes, B = flake8-bugbear, C4 = flake8-comprehensions,
+# matching the bytedeck house style.
+#
+# `select` rather than `extend-select`: extend-select adds to whatever ruff's default set
+# happens to be, which is both large (400+ rules) and free to change between releases. Being
+# explicit keeps a ruff upgrade from failing CI on rules nobody chose.
+select = ["E", "W", "F", "B", "C4"]
 
 [tool.coverage.run]
 source = ["src/tourguide"]

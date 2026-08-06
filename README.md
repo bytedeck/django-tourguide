@@ -28,8 +28,15 @@ a different renderer is a second adapter rather than a rewrite.
 
 ## Requirements
 
-- Python 3.10+
-- Django 4.2+
+- Django 5.2, 6.0 or 6.1
+- Python 3.10 to 3.14 on Django 5.2, or 3.12 to 3.14 on Django 6.x (Django 6.0 dropped the
+  older Pythons)
+
+CI tests both ends of each of those Python ranges, so the support claimed here is the support
+that is actually exercised.
+
+Django 4.2 and 5.1 are not supported: 5.1 reached end of life on 2025-12-03 and 4.2 on
+2026-04-07.
 
 ## Install
 
