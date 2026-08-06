@@ -4,11 +4,11 @@ Database-driven, multi-page guided tours for Django.
 
 > ### Pre-release: not usable yet
 >
-> **What exists today:** an installable package containing two empty Django apps, a runnable
-> demo project, a test suite, and CI. There are no models, no endpoints, and no renderer, so
-> there is nothing to author a tour with and nothing to run.
+> **What exists today:** the models, the admin used to author a tour, and the JSON endpoints
+> described below, plus a runnable demo project, a test suite, and CI. There is no renderer
+> yet, so a tour can be built and its spec fetched, but nothing draws it on a page.
 >
-> Everything described below is the plan, landing across
+> The rest is the plan, landing across
 > [#2](https://github.com/bytedeck/django-tourguide/issues/2) through
 > [#8](https://github.com/bytedeck/django-tourguide/issues/8). Installing it now gets you two
 > app entries in `INSTALLED_APPS` and nothing else. This banner comes off at 0.1.0.
@@ -56,6 +56,18 @@ INSTALLED_APPS = [
 
 They are two apps rather than one so that they can be placed separately under multitenancy
 (below). In an ordinary project the split makes no difference, and you can otherwise ignore it.
+
+Then mount the endpoints wherever you like:
+
+```python
+urlpatterns = [
+    ...
+    path("tourguide/", include("tourguide.urls")),
+]
+```
+
+The prefix is yours to choose. Nothing in the package hardcodes it, so the client is told
+where the endpoints live rather than assuming.
 
 ## Using it with django-tenants
 
@@ -118,6 +130,103 @@ resolver returns nothing rather than raising when that happens.
 That is the behaviour we want regardless of multitenancy: shipped tour content gets re-imported
 whenever it is updated, and a real foreign key would cascade-delete everyone's progress each
 time.
+
+## The JSON contract
+
+Three endpoints, mounted at whatever prefix you chose above. This is the seam that keeps the
+renderer swappable: the server decides what a tour contains and who may see it, and a renderer
+is whatever consumes this JSON.
+
+Every response is JSON, including refusals. A tour runs on a page the user is already looking
+at, so redirecting an unauthenticated caller to a login form would hand the client an HTML
+document where it expected a spec. Anonymous callers get **403**, worded as JSON.
+
+### `GET /` : the tours on offer
+
+The active tours whose audience includes the current user, with that user's progress on each.
+
+```json
+{
+  "tours": [
+    {
+      "slug": "quests",
+      "name": "Quests",
+      "description": "How quests work",
+      "icon": "fa-scroll",
+      "progress": {
+        "last_step": 3,
+        "started_at": "2026-08-06T20:12:40.512Z",
+        "completed_at": null,
+        "dismissed_at": null,
+        "is_finished": false
+      }
+    }
+  ]
+}
+```
+
+`progress` is `null` when the user has never been offered the tour. That is **not** the same as
+a record sitting at step zero: the absence of a record is what makes a tour start by itself, so
+a client that conflates the two will re-offer tours people have already dismissed.
+
+### `GET /<slug>/spec/` : one tour's steps
+
+```json
+{
+  "slug": "quests",
+  "name": "Quests",
+  "description": "How quests work",
+  "steps": [
+    {
+      "order": 0,
+      "element": "#quests-menu",
+      "title": "Your quests",
+      "content": "<p>Everything you can work on lives here.</p>",
+      "side": "bottom",
+      "align": "start",
+      "path": "/quests/"
+    }
+  ]
+}
+```
+
+`path` is the page the step belongs to, already resolved: a step may name a Django route
+rather than a literal path, and that name is reversed here because the client has no URLconf
+to reverse against. It is `null` for a step that belongs to whatever page the tour is already
+on, which is the usual case for consecutive steps.
+
+`path` is also `null` if a step names a route that has since been renamed. That costs the step
+its navigation but not its place in the tour, and logs a warning naming the tour and the route.
+The alternative, failing the request, would take down a whole tour over one step, and the host
+project can rename a route at any time with nothing written to this package's tables.
+
+### `POST /<slug>/progress/` : record where the user got to
+
+```json
+{"action": "step", "step": 3}
+{"action": "completed"}
+{"action": "dismissed"}
+```
+
+Responds with `{"slug": ..., "progress": {...}}` carrying the stored record. Posting repeatedly
+for one tour updates the single record rather than accumulating rows, `step` only ever moves
+forward, and completion and dismissal keep their original timestamps if repeated.
+
+Completion and dismissal are recorded separately. Both stop a tour reappearing, but collapsing
+them would lose the difference between a tour people finish and one everybody abandons, which
+is the main thing worth knowing about a tour.
+
+This endpoint is **not CSRF-exempt**: send `X-CSRFToken` as you would for any Django POST. The
+write is small but real, since a forged request could mark a tour dismissed so that it never
+appears for that user again.
+
+### The audience gate
+
+Every endpoint enforces the audience server-side, not just the picker. Requesting a staff-only
+tour's spec, or posting progress for it, as a user outside that audience returns **404** rather
+than 403, worded identically to a slug that names no tour at all. A 403 would confirm to
+someone who guessed a slug that a tour by that name exists, which turns the endpoint into a way
+to enumerate the staff-facing parts of your site.
 
 ## Demo project
 
