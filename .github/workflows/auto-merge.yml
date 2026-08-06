@@ -1,0 +1,83 @@
+name: Auto-merge
+
+# Arms GitHub's own auto-merge on every pull request, so a pull request lands by itself once
+# the required checks are green.
+#
+# Nothing here judges whether a pull request is good. GitHub holds the merge until everything
+# branch protection requires on `main` is satisfied, so what actually gates a merge is the
+# ruleset on `main`, not this workflow. If that ruleset is removed, GitHub has nothing to wait
+# for and refuses to arm auto-merge at all, which the last step reports rather than merging
+# something unchecked.
+
+on:
+  pull_request:
+    # `synchronize` and `ready_for_review` are here so the pull request re-arms itself: auto
+    # merge is switched off again if a reviewer requests changes, and a later push should not
+    # leave it silently disarmed.
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+  # To read whether `ci-ok` passed on the head commit, which is how the last step below tells
+  # an already-mergeable pull request apart from a repository with nothing gating merges.
+  checks: read
+
+# A pull request pushed to several times in a row only needs the newest attempt.
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  enable:
+    # Only pull requests raised from a branch in this repository, and only once they are out
+    # of draft. A pull request from a fork is written by someone outside the org, and the
+    # review that would otherwise catch that is automated, so arming auto-merge on one could
+    # land outside code with no person ever having looked at it. Those stay manual.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # GitHub decides asynchronously whether a pull request is blocked, and refuses to arm
+          # auto-merge while it still thinks there is nothing to wait for. On a pull request
+          # opened seconds ago that verdict can lag its own checks, so a first refusal is
+          # usually a timing artefact rather than a real problem.
+          for attempt in 1 2 3; do
+            if output=$(gh pr merge --auto --squash "$PR" 2>&1); then
+              echo "$output"
+              exit 0
+            fi
+            echo "$output"
+            sleep $((attempt * 15))
+          done
+
+          # Still refused after the state settled, so this is not a timing artefact.
+          if ! grep -qi 'clean status' <<<"$output"; then
+            exit 1
+          fi
+
+          # "Clean status" means GitHub has nothing left to hold the merge for. That covers two
+          # situations which want opposite responses: the checks have already passed, so the
+          # pull request should simply be merged; or nothing was ever required, so merging
+          # would land code that was never checked. Decide on the evidence rather than
+          # guessing, by asking whether `ci-ok` itself is recorded green against this commit.
+          #
+          # Reading the ruleset would answer the question more directly but is not available
+          # here: the built-in token cannot be granted administration scope, so a workflow
+          # cannot read a repository's rulesets at all.
+          if gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/check-runs" \
+               --jq '.check_runs[] | select(.name == "ci-ok") | .conclusion' | grep -qx success; then
+            echo "ci-ok already passed on ${SHA}, so there was nothing left to wait for. Merging."
+            gh pr merge --squash "$PR"
+            exit 0
+          fi
+
+          echo "::warning::Auto-merge was refused and 'ci-ok' has not passed on ${SHA}, so nothing is gating merges on this repository. Add a ruleset on 'main' requiring the 'ci-ok' status check, then reopen or push to this pull request. Leaving this one to be merged by hand."
+          exit 0
