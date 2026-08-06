@@ -4,6 +4,7 @@ from django.contrib.auth.models import AnonymousUser, User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
+from django.urls import NoReverseMatch
 
 from tourguide.models import Step, Tour
 
@@ -234,3 +235,38 @@ class StepPageTests(TestCase):
         step = Step(tour=self.tour, order=0, element="#thing")
 
         step.clean()  # must not raise
+
+    def test_both_url_name_and_path__rejected_by_the_database(self):
+        """The database refuses a step naming both, not just `clean()`.
+
+        Steps also arrive from fixtures, data migrations and bulk writes, none of which
+        validate, and a row with both set would silently ignore its path.
+        """
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Step.objects.create(tour=self.tour, order=0, url_name="admin:index", path="/settings/")
+
+    def test_url_name_alone__accepted_by_the_database(self):
+        """The constraint permits a URL name on its own."""
+        Step.objects.create(tour=self.tour, order=0, url_name="admin:index")  # must not raise
+
+    def test_path_alone__accepted_by_the_database(self):
+        """The constraint permits a path on its own."""
+        Step.objects.create(tour=self.tour, order=0, path="/settings/")  # must not raise
+
+    def test_neither__accepted_by_the_database(self):
+        """The constraint permits a step with no page of its own, which is the common case."""
+        Step.objects.create(tour=self.tour, order=0)  # must not raise
+
+    def test_get_path__raises_when_a_stored_url_name_stops_resolving(self):
+        """`get_path()` does not hide a broken URL name.
+
+        A host project can rename a route at any time, which invalidates stored steps with no
+        write to this table. Callers that render to a user are expected to handle this; the
+        admin does.
+        """
+        Step.objects.create(tour=self.tour, order=0, url_name="admin:index")
+        # `update()` bypasses validation, which is how a stale name gets stored in practice.
+        Step.objects.filter(order=0).update(url_name="gone:away")
+
+        with self.assertRaises(NoReverseMatch):
+            Step.objects.get(order=0).get_path()

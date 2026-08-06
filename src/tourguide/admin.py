@@ -6,6 +6,7 @@ project gets an authoring interface without writing one.
 
 from django.contrib import admin
 from django.db.models import Count
+from django.urls import NoReverseMatch
 
 from .models import Step, Tour
 
@@ -59,5 +60,15 @@ class StepAdmin(admin.ModelAdmin):
 
     @admin.display(description="Page")
     def page(self, obj):
-        """The path this step lives on, or a dash when it stays on the current page."""
-        return obj.get_path() or "-"
+        """The path this step lives on, or a dash when it stays on the current page.
+
+        A stored URL name can stop resolving without anything writing to this table, because
+        the host project owns its own URLconf and is free to rename or remove a route. It can
+        also be written unvalidated through a fixture or a bulk update. Either way the
+        changelist has to keep rendering, so this reports the broken step instead of raising
+        and turning the whole page into a 500.
+        """
+        try:
+            return obj.get_path() or "-"
+        except NoReverseMatch:
+            return f"unresolved: {obj.url_name}"

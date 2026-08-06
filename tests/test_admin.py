@@ -93,6 +93,22 @@ class StepAdminTests(TestCase):
 
         self.assertEqual(StepAdmin.page(None, self.no_page), "-")
 
+    def test_changelist__survives_a_stored_url_name_that_no_longer_resolves(self):
+        """A step whose URL name has stopped resolving must not 500 the whole changelist.
+
+        The host project owns its URLconf and can rename a route at any time, invalidating
+        stored steps with no write to this table. `update()` reproduces that here because it
+        bypasses validation, which is also how such a row gets stored in the first place.
+        """
+        Step.objects.filter(pk=self.by_url_name.pk).update(url_name="renamed:away")
+
+        response = self.client.get(reverse("admin:tourguide_step_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "unresolved: renamed:away")
+        # The other rows still render, so one bad step does not hide the rest.
+        self.assertContains(response, "/settings/")
+
     def test_search__finds_steps_by_selector(self):
         """Steps are searchable by selector, which is how you find what a rename would break."""
         Step.objects.create(tour=self.tour, order=3, title="Target", element="#quests-menu")
