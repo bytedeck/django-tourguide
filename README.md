@@ -479,6 +479,11 @@ A third is optional but wanted, and its absence is quiet rather than obvious:
   all from an event that `GITHUB_TOKEN` triggered, so a `pull_request_target: closed` job never
   fires for these merges.
 
+  The token spends its owner's API quota, shared with everything else that account does, so it
+  can be rate limited for reasons that have nothing to do with the repository. The workflow
+  arms with the built-in token when that happens, so the pull request still merges and only the
+  issue-closing is lost, and it says so.
+
 What a merge actually waits on is the ruleset on `main`, not that workflow. The ruleset
 requires one status check, `ci-ok`, which is a job in `CI` that succeeds only if `lint`, every
 `test` matrix job, and `demo` all succeeded. Requiring that one name rather than the eight

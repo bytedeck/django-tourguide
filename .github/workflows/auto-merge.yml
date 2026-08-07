@@ -71,6 +71,9 @@ jobs:
         env:
           PR: ${{ github.event.pull_request.html_url }}
           SHA: ${{ github.event.pull_request.head.sha }}
+          # Named separately from `GH_TOKEN` so the rate-limit fallback below has something to
+          # fall back to when `GH_TOKEN` is the personal access token.
+          BUILTIN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # GitHub decides asynchronously whether a pull request is blocked, and refuses to arm
           # auto-merge while it still thinks there is nothing to wait for. On a pull request
@@ -84,6 +87,17 @@ jobs:
             echo "$output"
             sleep $((attempt * 15))
           done
+
+          # A rate limit says nothing about this pull request: `AUTO_MERGE_TOKEN` spends the
+          # quota of the account it belongs to, shared with everything else that account does,
+          # and an hour is far longer than anything worth waiting out here. The built-in token
+          # has a budget of its own, so arming with that still lands the merge. What it costs
+          # is the attribution, and with it the linked issues, which is what the warning is for.
+          if [ "$OWN_TOKEN" = true ] && grep -qi 'rate limit' <<<"$output"; then
+            echo "::warning::AUTO_MERGE_TOKEN's account is out of API quota, so auto-merge was armed with the built-in token instead. GitHub will record the merge as github-actions[bot] and does not close linked issues for a merge attributed that way, so any 'Closes #123' on this pull request needs doing by hand."
+            GH_TOKEN="$BUILTIN_TOKEN" gh pr merge --auto --squash "$PR"
+            exit 0
+          fi
 
           # Still refused after the state settled, so this is not a timing artefact.
           if ! grep -qi 'clean status' <<<"$output"; then
