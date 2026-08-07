@@ -127,12 +127,17 @@ requires is satisfied. What gates a merge is the **ruleset on `main`** (which re
 `demo` passed. Requiring that one name rather than the eight underlying jobs keeps the ruleset
 stable when the matrix changes.
 
-A third setting, the `AUTO_MERGE_TOKEN` secret, is optional and decides whether `Closes #123`
-works. GitHub does not close linked issues when the merge is attributed to
-`github-actions[bot]`, which is what the built-in token is, and no workflow can pick up the
-slack: GitHub creates no workflow run at all from an event that `GITHUB_TOKEN` triggered.
-**If a run warns that the secret is missing, close the issues by hand after the merge** rather
-than assuming GitHub did it.
+A third setting, the `AUTO_MERGE_TOKEN` secret, decides whether `Closes #123` works, and this
+repository has it: **linked issues close on merge by themselves, so do not close them by
+hand.** Doing it anyway is not harmless, since it attributes the close to you rather than to
+the pull request that earned it.
+
+The secret is what puts a person's identity on the merge. GitHub does not close linked issues
+when the merge is attributed to `github-actions[bot]`, which is what the built-in token is,
+and no workflow can pick up the slack: GitHub creates no workflow run at all from an event
+that `GITHUB_TOKEN` triggered. So if an `Auto-merge` run ever warns that the secret is
+missing, it has lapsed or been removed: close that pull request's issues by hand, and say so
+rather than leaving it looking like it worked.
 
 ### CodeRabbit
 
