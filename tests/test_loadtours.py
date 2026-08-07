@@ -194,7 +194,7 @@ class LoadToursChangeTests(TestCase):
 
 
 class LoadToursLocalEditTests(TestCase):
-    """The rule that a deck's own edits are not thrown away."""
+    """The rule that a site's own edits are not thrown away."""
 
     def setUp(self):
         """An imported tour that someone has since edited in the admin."""
@@ -221,7 +221,7 @@ class LoadToursLocalEditTests(TestCase):
         self.assertIn("--force", output)
 
     def test_loadtours__force_replaces_an_edited_tour(self):
-        """Asking explicitly is how a deck gets back to the shipped content."""
+        """Asking explicitly is how a site gets back to the shipped content."""
         load(self.path, force=True)
 
         self.assertEqual(Tour.objects.get(slug="quests").name, "Quests")

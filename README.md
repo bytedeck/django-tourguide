@@ -177,7 +177,7 @@ where they live.
 changes nothing the second time, leaves primary keys alone, and never disturbs progress
 records. Steps added to a fixture appear; steps removed from it go.
 
-**A deck's own edits are not thrown away.** Each import stamps the tour with a fingerprint of
+**A site's own edits are not thrown away.** Each import stamps the tour with a fingerprint of
 what was written. On the next run, a tour whose content no longer matches its fingerprint has
 been edited locally, and is left alone with a message saying so. `--force` overrides that. A
 tour nobody imported is treated the same way, since it is somebody's own work either way.
