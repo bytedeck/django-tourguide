@@ -22,6 +22,10 @@ permissions:
   # To read whether `ci-ok` passed on the head commit, which is how the last step below tells
   # an already-mergeable pull request apart from a repository with nothing gating merges.
   checks: read
+  # To close the issues a pull request says it closes. GitHub attributes that closing to
+  # whoever armed auto-merge, which here is this token, and a token that cannot write issues
+  # merges the pull request and silently leaves "Closes #123" unhonoured.
+  issues: write
 
 # A pull request pushed to several times in a row only needs the newest attempt.
 concurrency:
