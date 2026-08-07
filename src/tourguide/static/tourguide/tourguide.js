@@ -91,6 +91,61 @@
 
   /* --------------------------------------------------------------- rendering ---- */
 
+  /**
+   * Hang the configured theme's classes on the popover driver.js just rendered.
+   *
+   * The theme arrives as a plain map of element to class string, so nothing here knows what
+   * Bootstrap is: a project can describe any design system in settings and this applies it
+   * unchanged. With no theme configured the popover is left exactly as driver.js built it.
+   */
+  function applyTheme(popover) {
+    if (!config.theme) {
+      return;
+    }
+    var theme = config.theme;
+    var replaced = config.themeClasses.replaced;
+
+    // driver.js styles its buttons with `all: unset` followed by its own chrome, and its
+    // stylesheet loads after the project's, so a framework's button class of equal
+    // specificity loses the cascade. Its class comes off rather than the framework's going
+    // on beside it.
+    [
+      [popover.nextButton, theme.nextButton],
+      [popover.previousButton, theme.prevButton],
+      [popover.closeButton, theme.closeButton]
+    ].forEach(function (pair) {
+      restyle(pair[0], pair[1], replaced.buttons);
+    });
+
+    if (popover.closeButton) {
+      // The close button loses driver.js's class for the same reason, but that class also
+      // positioned it, so ours puts the positioning back and does nothing else.
+      popover.closeButton.classList.remove(replaced.close);
+      popover.closeButton.classList.add(config.themeClasses.close);
+      if (theme.clearCloseLabel) {
+        // Bootstrap 5's `.btn-close` draws its own icon, so driver.js's multiplication sign
+        // would show up as a second one beside it.
+        popover.closeButton.textContent = "";
+      }
+    }
+
+    if (theme.popover && popover.wrapper) {
+      popover.wrapper.classList.add(theme.popover);
+    }
+  }
+
+  function restyle(element, classes, removed) {
+    if (!element || !classes) {
+      return;
+    }
+    element.classList.remove(removed);
+    classes.split(/\s+/).forEach(function (name) {
+      if (name) {
+        element.classList.add(name);
+      }
+    });
+  }
+
   function toDriverStep(step) {
     var popover = {
       title: step.title || "",
@@ -139,6 +194,9 @@
       },
       onPrevClick: function () {
         move(-1);
+      },
+      onPopoverRender: function (popover) {
+        applyTheme(popover);
       },
       onDestroyStarted: function () {
         // driver.js calls this both when the user closes the tour and when we end it

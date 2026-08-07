@@ -13,3 +13,11 @@ class TourguideConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "tourguide"
     verbose_name = "Tour Guide"
+
+    def ready(self):
+        """Register the system checks.
+
+        Imported for the side effect of the `@register` decorator running, which is the
+        documented way to hook checks up and why the import looks unused.
+        """
+        from tourguide import checks  # noqa: F401

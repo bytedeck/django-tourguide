@@ -15,6 +15,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.middleware.csrf import get_token
 from django.urls import NoReverseMatch, reverse
 
+from tourguide.themes import CLOSE_CLASS, REPLACED_CLASSES, get_theme
+
 register = template.Library()
 
 #: Stand-in slug used to build a URL pattern the client fills in for itself.
@@ -27,12 +29,16 @@ SLUG_PLACEHOLDER = "__tourguide_slug__"
 
 
 @register.inclusion_tag("tourguide/loader.html", takes_context=True)
-def tourguide(context, autostart=True):
+def tourguide(context, autostart=True, theme=None):
     """Load the tour renderer on this page.
 
     Pass ``autostart=False`` to load the renderer without offering anything by itself, so
     tours only ever start from a button. An in-flight tour still resumes either way: stopping
     halfway through and being unable to continue is not a useful reading of "no autostart".
+
+    ``theme`` overrides ``TOURGUIDE_THEME`` for this template. The setting is the right place
+    for it, since a project has one design system rather than one per page; the override is
+    for the project part-way through changing that, where two of them are in the tree at once.
     """
     request = context.get("request")
     return {
@@ -47,6 +53,9 @@ def tourguide(context, autostart=True):
             # Read here rather than from the cookie, so the progress endpoint still works
             # under CSRF_USE_SESSIONS, where there is no cookie to read.
             "csrfToken": get_token(request) if request is not None else "",
+            # Resolved to a class map here, so the adapter never has to know what Bootstrap is.
+            "theme": get_theme(theme),
+            "themeClasses": {"close": CLOSE_CLASS, "replaced": REPLACED_CLASSES},
         }
     }
 

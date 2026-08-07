@@ -123,7 +123,57 @@ legitimately (the step belongs to another page) and accidentally (a project rest
 thing it pointed at), and neither is worth breaking a tour over. An invalid selector is treated
 the same way and logs a warning naming it.
 
-### Theming
+### Themes
+
+Out of the box a tour renders in driver.js's own look: a plain white card with small bordered
+buttons. If your site is on Bootstrap, name it and the tour uses your buttons instead:
+
+```python
+TOURGUIDE_THEME = "bootstrap5"      # or "bootstrap3", "bootstrap4"
+```
+
+The setting is the normal place for it, since a project has one design system rather than one
+per page. `{% tourguide theme="bootstrap3" %}` overrides it for a single template, which is for
+the project part-way through changing frameworks with both in the tree at once.
+
+**The theme applies your classes, it does not ship styles.** `btn btn-primary btn-sm` and
+friends are Bootstrap's, already on the page, so the tour inherits whatever you compiled,
+customisations included. Nothing here guesses at your palette.
+
+Bootstrap 5 gets a little more, because it is the only one of the three exposing variables its
+own components consume: the popover box reads `--bs-body-bg` and friends, so a tour follows
+`data-bs-theme="dark"` with no second stylesheet. Bootstrap 3 and 4 have no equivalent, so
+their themes style the buttons and leave the box as driver.js's white card, which is what a
+popover looks like in those frameworks anyway.
+
+One thing you will notice: the close button shows Bootstrap's focus ring when a step opens.
+driver.js focuses it deliberately, for keyboard users, and that ring is Bootstrap's own
+affordance, the same one a modal's close button shows. It is left alone rather than styled
+away, since removing it would take a focus indicator with it.
+
+#### Your own design system
+
+A theme is just a map of element to class, so a project that is not on Bootstrap describes its
+own and needs nothing from this package:
+
+```python
+TOURGUIDE_THEME = "bulma"
+TOURGUIDE_THEMES = {
+    "bulma": {
+        "popover": "box",
+        "nextButton": "button is-primary is-small",
+        "prevButton": "button is-small",
+        "closeButton": "delete",
+        "clearCloseLabel": True,       # the framework draws its own icon
+    },
+}
+```
+
+The same names may also replace a shipped theme, since project themes are looked up first. A
+name that resolves to nothing is reported by `manage.py check` rather than quietly rendering
+unstyled buttons, which looks identical to a theme that had no effect.
+
+### Styling it yourself
 
 `driver.css` already makes a tour legible, and `tourguide.css` adds only what the package needs
 on top of it. Anything resembling a house style is deliberately left to you. Two class hooks

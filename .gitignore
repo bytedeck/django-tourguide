@@ -219,3 +219,6 @@ __marimo__/
 
 # Demo project database (regenerate with: python demo/manage.py migrate)
 demo/demo.sqlite3
+
+# Bootstrap stylesheets for the demo theme switcher, fetched on demand (see demo/README.md).
+demo/demosite/static/vendor/

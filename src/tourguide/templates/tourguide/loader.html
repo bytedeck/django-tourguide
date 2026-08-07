@@ -8,6 +8,7 @@ containing markup cannot break out of the tag.
 {% endcomment %}
 <link rel="stylesheet" href="{% static 'tourguide/vendor/driver.css' %}">
 <link rel="stylesheet" href="{% static 'tourguide/tourguide.css' %}">
+{% if config.theme %}<link rel="stylesheet" href="{% static 'tourguide/tourguide-themes.css' %}">{% endif %}
 {{ config|json_script:"tourguide-config" }}
 <script src="{% static 'tourguide/vendor/driver.js.iife.js' %}" defer></script>
 <script src="{% static 'tourguide/tourguide.js' %}" defer></script>
