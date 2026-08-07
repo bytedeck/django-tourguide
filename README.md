@@ -2,30 +2,24 @@
 
 Database-driven, multi-page guided tours for Django.
 
-> ### Pre-release: not usable yet
+> ### 0.1.0: a first release
 >
-> **What exists today:** everything except the release. The models, the authoring admin, the
-> JSON endpoints, the renderer (including multi-page tours that resume where you left them),
-> and `loadtours` for shipping content are all in place. What is left before 0.1.0 is cutting
-> the release itself.
->
-> The rest is the plan, landing across
-> [#2](https://github.com/bytedeck/django-tourguide/issues/2) through
-> [#8](https://github.com/bytedeck/django-tourguide/issues/8). Installing it now gets you two
-> app entries in `INSTALLED_APPS` and nothing else. This banner comes off at 0.1.0.
+> Everything documented here works and is covered by tests. The version says what it says,
+> though: this is the first release, and the JSON contract below is the part most likely to
+> move. It is documented precisely for that reason, and a breaking change to it will be a major
+> version like any other.
 
-## What it will do
+## What it does
 
-Tours and their steps will be ordinary Django models, so they are built and edited in the
-admin rather than hardcoded. A tour will be able to span several pages: each step records the
-page it belongs to, and the tour navigates there and resumes when the user reaches it.
-Progress will be stored per user on the server, so a half-finished tour survives a reload, a
-new tab, or a different browser.
+Tours and their steps are ordinary Django models, so they are built and edited in the admin
+rather than hardcoded. A tour can span several pages: each step records the page it belongs to,
+and the tour navigates there and resumes when the user reaches it. Progress is stored per user
+on the server, so a half-finished tour survives a reload, a new tab, or a different browser.
 
-Rendering will use [driver.js](https://github.com/nilbuild/driver.js) (MIT, no runtime
-dependencies), vendored into the package. Nothing about the models or endpoints will be
-specific to it: the server emits a JSON tour spec and a small adapter drives the renderer, so
-a different renderer is a second adapter rather than a rewrite.
+Rendering uses [driver.js](https://github.com/nilbuild/driver.js) (MIT, no runtime
+dependencies), vendored into the package. Nothing about the models or endpoints is specific to
+it: the server emits a JSON tour spec and a small adapter drives the renderer, so a different
+renderer is a second adapter rather than a rewrite.
 
 ## Requirements
 
