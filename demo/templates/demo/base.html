@@ -1,9 +1,21 @@
-{% load tourguide %}<!doctype html>
-<html lang="en">
+{% load static tourguide %}<!doctype html>
+{% comment %}
+`?bs=3`, `?bs=4` or `?bs=5` loads that Bootstrap and the matching tour theme, which is how the
+themes are checked against the real frameworks rather than against a guess at them. `?dark`
+adds Bootstrap 5's dark mode, which the theme follows without a second stylesheet.
+
+The stylesheets are not in the repository. Fetch them once (see demo/README) or leave them
+out: without them the page is unstyled but everything still works, which is the point of the
+themes being the project's classes rather than ours.
+{% endcomment %}
+<html lang="en"{% if request.GET.bs == "5" and "dark" in request.GET %} data-bs-theme="dark"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}django-tourguide demo{% endblock %}</title>
+  {% if request.GET.bs == "3" %}<link rel="stylesheet" href="{% static 'vendor/bootstrap3.min.css' %}">{% endif %}
+  {% if request.GET.bs == "4" %}<link rel="stylesheet" href="{% static 'vendor/bootstrap4.min.css' %}">{% endif %}
+  {% if request.GET.bs == "5" %}<link rel="stylesheet" href="{% static 'vendor/bootstrap5.min.css' %}">{% endif %}
   <style>
     :root { color-scheme: light dark; }
     body {
@@ -49,6 +61,11 @@
   Once, in the base template, so every page can run a tour and a tour can cross between them.
   Only signed-in users have tours, so there is nothing to load for anyone else.
   {% endcomment %}
-  {% if user.is_authenticated %}{% tourguide %}{% endif %}
+  {% if user.is_authenticated %}
+    {% if request.GET.bs == "3" %}{% tourguide theme="bootstrap3" %}
+    {% elif request.GET.bs == "4" %}{% tourguide theme="bootstrap4" %}
+    {% elif request.GET.bs == "5" %}{% tourguide theme="bootstrap5" %}
+    {% else %}{% tourguide %}{% endif %}
+  {% endif %}
 </body>
 </html>
