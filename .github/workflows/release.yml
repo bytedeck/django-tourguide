@@ -1,0 +1,79 @@
+name: Release
+
+# Publishes to PyPI when a `v*` tag is pushed. Nothing else triggers it, so a release is an
+# explicit act: merge the version bump, then tag the commit you want published.
+#
+# Authentication is PyPI's trusted publishing, so there is no token anywhere in this
+# repository. PyPI is told, once, that this workflow file in this repository may publish this
+# project, and each run exchanges a short-lived OpenID Connect identity for an upload token
+# that expires with it. A leaked secret is not a thing that can happen here because there is
+# no secret.
+#
+# That trust is pinned to the workflow *filename*, so renaming this file breaks publishing
+# until the publisher on PyPI is updated to match.
+
+on:
+  push:
+    tags: ["v*"]
+
+# Read-only by default. The publish job below grants itself the one extra permission it needs.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # This job runs the project's own build backend, and it has no reason to push, so
+          # the token does not belong in .git/config where that code could read it.
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Before building, because the tag is what everyone will read the version off: the
+      # release page, the changelog heading, the `pip install` that pins it. A tag that
+      # disagrees with the package would publish a version nobody asked for, under a name
+      # that says otherwise, and PyPI does not allow taking a version back.
+      - name: Check the tag matches the version being packaged
+        run: |
+          declared=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          tagged="${GITHUB_REF_NAME#v}"
+          if [ "$declared" != "$tagged" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match the packaged version ${declared}. Fix one of them and tag again."
+            exit 1
+          fi
+          echo "Publishing ${declared} as ${GITHUB_REF_NAME}."
+
+      - run: pip install build twine
+      - run: python -m build
+      # Catches the metadata problems PyPI would reject the upload for, before the upload.
+      - run: python -m twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    # Named on the publisher registered with PyPI, and the place to hang a required reviewer
+    # if a release should ever wait for a person.
+    environment: pypi
+    # Replaces the workflow's permissions for this job: the OpenID Connect token, and nothing
+    # else. It never checks the repository out, so all it can reach is the built artefact.
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      # PyPA's own action, which performs the OpenID Connect exchange. Tracking their v1
+      # branch rather than a commit, as PyPI's documentation recommends, so security fixes
+      # arrive without a bump here; pinning to a digest is the stricter alternative and gives
+      # that up.
+      - uses: pypa/gh-action-pypi-publish@release/v1
