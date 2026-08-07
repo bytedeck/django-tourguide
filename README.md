@@ -2,6 +2,14 @@
 
 Database-driven, multi-page guided tours for Django.
 
+![A tour running on the demo site: it opens on the home page, points at two elements in turn,
+carries its place across to the Settings page, survives a reload of that page, and finishes.](https://raw.githubusercontent.com/bytedeck/django-tourguide/pr-assets/readme/tour.gif?v=1)
+
+Recorded from the [demo project](#demo-project) in this repository, themed with Bootstrap 5.
+Note the two things a single-page tour cannot do: the tour crosses from one page to another
+carrying its place, and it survives the reload halfway through, because progress is kept on the
+server rather than in the tab.
+
 > ### 0.1.0: a first release
 >
 > Everything documented here works and is covered by tests. The version says what it says,

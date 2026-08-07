@@ -39,3 +39,22 @@ done
 
 Without them the page renders unstyled and everything still works, which is rather the point:
 a theme is the host project's own classes, not stylesheets this package ships.
+
+The choice is remembered in the session rather than read from the query string each time, so it
+survives the tour navigating to the other page. A host project has one design system and no
+switch at all; this is demo furniture.
+
+## Re-recording the README GIF
+
+The animation at the top of the main README is captured from this site by `record_gif.py`,
+which needs `playwright` and `pillow`:
+
+```bash
+pip install playwright pillow && playwright install chromium
+python demo/manage.py runserver 127.0.0.1:8011
+python demo/record_gif.py tour.gif
+```
+
+It walks the tour and screenshots as it goes, so every frame is the real app. Re-record it
+whenever a change alters what a tour looks like, and see `CLAUDE.md` for where the file goes
+and why the README's URL carries a `?v=`.

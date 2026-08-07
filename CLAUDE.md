@@ -194,3 +194,23 @@ git push origin $C:refs/heads/pr-assets
 Fetch with an explicit refspec as shown. `git fetch origin pr-assets` updates only `FETCH_HEAD`,
 leaving `origin/pr-assets` stale, and committing onto a stale parent is rejected as a
 non-fast-forward.
+
+### Keeping the README GIF current
+
+The README opens with an animated GIF of a tour running, at `readme/tour.gif` on `pr-assets`.
+It is the first thing anyone sees, and it is the only place the package shows what it actually
+does, so **a change that alters what a tour looks like or how it behaves must re-record it in
+the same pull request.** That covers the renderer, the themes and their stylesheet, the
+popover markup, the demo project's own pages, and anything that changes the steps the demo
+tour walks through. A GIF showing a popover the package no longer renders is worse than no GIF:
+it is a claim about the current version that happens to be false.
+
+Re-record with `demo/record_gif.py`, against the running demo, and keep the story the
+same so the change is the only difference: welcome, two anchored steps, the crossing to
+Settings, a reload, the last step. Every frame is a real screenshot. Do not composite captions,
+browser chrome or anything else onto it, for the same reason mockups are not acceptable as
+screenshots.
+
+Push it to the **same path**, so the README's URL never changes, and bump the `?v=` on that URL
+in the README. GitHub proxies and caches images by URL, so without the bump readers keep being
+served the old animation.
