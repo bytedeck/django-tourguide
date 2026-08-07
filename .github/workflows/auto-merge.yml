@@ -6,8 +6,29 @@ name: Auto-merge
 # Nothing here judges whether a pull request is good. GitHub holds the merge until everything
 # branch protection requires on `main` is satisfied, so what actually gates a merge is the
 # ruleset on `main`, not this workflow. If that ruleset is removed, GitHub has nothing to wait
-# for and refuses to arm auto-merge at all, which the last step reports rather than merging
+# for and refuses to arm auto-merge at all, which the first step reports rather than merging
 # something unchecked.
+#
+# ## Why this wants a token of its own
+#
+# Whoever arms auto-merge is who GitHub records as merging, and that identity decides whether
+# "Closes #123" in a pull request actually closes the issue: GitHub does not do it when the
+# merge is attributed to `github-actions[bot]`, which is the identity of the built-in
+# `GITHUB_TOKEN`. So arming auto-merge with the built-in token means every linked issue stays
+# open, with no error and no log line.
+#
+# A workflow reacting to the merge cannot substitute for it, which is the obvious thing to
+# reach for: GitHub creates no workflow run at all from an event that `GITHUB_TOKEN`
+# triggered, so a `pull_request_target: closed` job never fires for one of these merges.
+#
+# Setting an `AUTO_MERGE_TOKEN` secret to a fine-grained personal access token, scoped to this
+# repository with **contents: read and write** and **pull requests: read and write**, fixes
+# both: the merge is attributed to a person, and GitHub closes the linked issues itself.
+# Without the secret everything still merges, but linked issues have to be closed by hand, and
+# the second step below says so on every run.
+#
+# The secret is safe to hold here: `pull_request` runs from a fork get no secrets at all, and
+# the job below is in any case limited to branches in this repository.
 
 on:
   pull_request:
@@ -19,7 +40,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  # To read whether `ci-ok` passed on the head commit, which is how the last step below tells
+  # To read whether `ci-ok` passed on the head commit, which is how the fallback below tells
   # an already-mergeable pull request apart from a repository with nothing gating merges.
   checks: read
 
@@ -38,10 +59,16 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
       && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    env:
+      # The personal access token when the repository has one, and the built-in token
+      # otherwise, so a repository without the secret still merges rather than breaking.
+      GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || secrets.GITHUB_TOKEN }}
+      # Which of the two it was. A secret cannot be read from a step's `if`, so the answer is
+      # carried in a plain environment variable that can.
+      OWN_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN != '' }}
     steps:
       - name: Enable auto-merge
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.html_url }}
           SHA: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -81,3 +108,10 @@ jobs:
 
           echo "::warning::Auto-merge was refused and 'ci-ok' has not passed on ${SHA}, so nothing is gating merges on this repository. Add a ruleset on 'main' requiring the 'ci-ok' status check, then reopen or push to this pull request. Leaving this one to be merged by hand."
           exit 0
+
+      # Said on every run rather than once, because the failure it describes is silent: an
+      # issue that quietly stays open looks exactly like one nobody linked.
+      - name: Say so if linked issues will not close by themselves
+        if: env.OWN_TOKEN != 'true'
+        run: |
+          echo "::warning::No AUTO_MERGE_TOKEN secret, so auto-merge is armed with the built-in token and GitHub will record the merge as github-actions[bot]. It does not close linked issues for a merge attributed that way, so any 'Closes #123' on this pull request will need doing by hand. See the comment at the top of this workflow for the fix."

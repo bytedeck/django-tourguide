@@ -463,6 +463,22 @@ without either:
 - **A ruleset on `main` requiring the `ci-ok` status check**, which is what a merge then waits
   for.
 
+A third is optional but wanted, and its absence is quiet rather than obvious:
+
+- **An `AUTO_MERGE_TOKEN` secret**, holding a fine-grained personal access token scoped to this
+  repository with *contents: read and write* and *pull requests: read and write*.
+
+  Whoever arms auto-merge is who GitHub records as merging, and that identity decides whether
+  `Closes #123` closes anything: GitHub does **not** close linked issues when the merge is
+  attributed to `github-actions[bot]`, which is the built-in `GITHUB_TOKEN`'s identity. With
+  the secret set, the merge is attributed to a person and GitHub closes them itself. Without
+  it, everything still merges and linked issues simply have to be closed by hand, which the
+  workflow warns about on every run.
+
+  A workflow reacting to the merge cannot substitute for it. GitHub creates no workflow run at
+  all from an event that `GITHUB_TOKEN` triggered, so a `pull_request_target: closed` job never
+  fires for these merges.
+
 What a merge actually waits on is the ruleset on `main`, not that workflow. The ruleset
 requires one status check, `ci-ok`, which is a job in `CI` that succeeds only if `lint`, every
 `test` matrix job, and `demo` all succeeded. Requiring that one name rather than the eight
