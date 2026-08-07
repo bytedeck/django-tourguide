@@ -23,18 +23,22 @@ themes being the project's classes rather than ours.
       margin: 0;
       line-height: 1.5;
     }
-    header {
+    /*
+     * By id rather than by tag name: driver.js builds the popover title out of a <header>, so a
+     * bare `header` rule here lands on every tour popover as well as on the page's own.
+     */
+    #site-header {
       display: flex;
       align-items: center;
       gap: 1.5rem;
       padding: 1rem 1.5rem;
       border-bottom: 1px solid rgba(128, 128, 128, 0.35);
     }
-    header strong { font-size: 1.1rem; }
-    nav { display: flex; gap: 1rem; }
-    nav a { text-decoration: none; }
-    nav a[aria-current="page"] { font-weight: 600; text-decoration: underline; }
-    main { padding: 1.5rem; max-width: 46rem; }
+    #site-header strong { font-size: 1.1rem; }
+    #site-nav { display: flex; gap: 1rem; }
+    #site-nav a { text-decoration: none; }
+    #site-nav a[aria-current="page"] { font-weight: 600; text-decoration: underline; }
+    #main { padding: 1.5rem; max-width: 46rem; }
     .panel {
       border: 1px solid rgba(128, 128, 128, 0.35);
       border-radius: 6px;

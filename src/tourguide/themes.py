@@ -38,8 +38,16 @@ REPLACED_CLASSES = {
     "close": "driver-popover-close-btn",
 }
 
+#: Marks a popover as Bootstrap-shaped, whichever version it is.
+#:
+#: driver.js renders no header and sizes the popover with numbers of its own, so the shipped
+#: stylesheet has to draw a Bootstrap-looking box. The three versions differ only in their
+#: metrics, so the shape is written once against this class and each version restates the
+#: handful of values it sizes differently.
+SHARED_CLASS = "tourguide-bootstrap"
+
 BOOTSTRAP3 = {
-    "popover": "tourguide-bootstrap3",
+    "popover": f"{SHARED_CLASS} tourguide-bootstrap3",
     "nextButton": "btn btn-primary btn-sm",
     "prevButton": "btn btn-default btn-sm",
     "closeButton": "close",
@@ -50,14 +58,14 @@ BOOTSTRAP3 = {
 
 BOOTSTRAP4 = {
     **BOOTSTRAP3,
-    "popover": "tourguide-bootstrap4",
+    "popover": f"{SHARED_CLASS} tourguide-bootstrap4",
     # `btn-default` was dropped in Bootstrap 4.
     "prevButton": "btn btn-secondary btn-sm",
 }
 
 BOOTSTRAP5 = {
     **BOOTSTRAP4,
-    "popover": "tourguide-bootstrap5",
+    "popover": f"{SHARED_CLASS} tourguide-bootstrap5",
     # `.close` became `.btn-close` in Bootstrap 5, and it draws its own icon with a
     # background image rather than styling a supplied glyph.
     "closeButton": "btn-close",

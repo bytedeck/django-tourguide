@@ -136,15 +136,19 @@ The setting is the normal place for it, since a project has one design system ra
 per page. `{% tourguide theme="bootstrap3" %}` overrides it for a single template, which is for
 the project part-way through changing frameworks with both in the tree at once.
 
-**The theme applies your classes, it does not ship styles.** `btn btn-primary btn-sm` and
-friends are Bootstrap's, already on the page, so the tour inherits whatever you compiled,
-customisations included. Nothing here guesses at your palette.
+**The theme applies your classes, it does not guess at your palette.** `btn btn-primary btn-sm`
+and friends are Bootstrap's, already on the page, so the tour inherits whatever you compiled,
+customisations included.
+
+The popover box is the exception, because there is no framework class to borrow for it:
+Bootstrap sizes `.popover` from variables declared inside that rule, and its `.popover-header`
+cannot be lifted out of it. So the theme loads a small stylesheet that draws the box in the
+metrics of the version you named: a titled header with a tint and a rule under it, that
+version's padding and type scale, and the arrow tinted to match the edge it leaves from.
 
 Bootstrap 5 gets a little more, because it is the only one of the three exposing variables its
-own components consume: the popover box reads `--bs-body-bg` and friends, so a tour follows
-`data-bs-theme="dark"` with no second stylesheet. Bootstrap 3 and 4 have no equivalent, so
-their themes style the buttons and leave the box as driver.js's white card, which is what a
-popover looks like in those frameworks anyway.
+own components consume: the box reads `--bs-body-bg` and friends, so a tour follows
+`data-bs-theme="dark"` with no second stylesheet.
 
 One thing you will notice: the close button shows Bootstrap's focus ring when a step opens.
 driver.js focuses it deliberately, for keyboard users, and that ring is Bootstrap's own
@@ -187,6 +191,11 @@ are part of the public interface and keep their names:
 driver.js's own classes (`.driver-popover-title`, `-description`, `-footer`, `-next-btn`,
 `-prev-btn`, `-close-btn`) are available too. Scope overrides under `.tourguide-popover` so
 they apply to this package's tours and not to another driver.js on the same page.
+
+With a theme in use the close button carries `.tourguide-close` rather than driver.js's
+`-close-btn`: that class declares `all: unset`, which would beat a framework's button class in
+the cascade, so it comes off and `.tourguide-close` puts back the positioning it was also
+carrying.
 
 driver.js 1.8.0 (MIT) is vendored into the app's static files, so there is no CDN and no build
 step: run `collectstatic` and you are done.

@@ -1,14 +1,11 @@
 /*
  * The parts of a theme that classes cannot express.
  *
- * Almost all of a theme is the host project's own button classes, applied to driver.js's
- * buttons by the adapter, so a themed tour inherits whatever that project compiled. What is
- * left is here, and it is deliberately small:
- *
- *   1. positioning the close button, which lost driver.js's class (and with it the absolute
- *      positioning) so the framework's button styling had something to win against;
- *   2. the popover box for Bootstrap 5, which is the only one of the three exposing
- *      variables its own components actually consume.
+ * Most of a theme is the host project's own button classes, applied to driver.js's buttons by
+ * the adapter, so a themed tour inherits whatever that project compiled. What is left is here:
+ * the popover box itself, which has no framework class to borrow. Bootstrap's `.popover` sizes
+ * itself with variables declared inside that same rule, and its `.popover-header` cannot be
+ * lifted out of it, so the box is described here in the metrics each Bootstrap version uses.
  *
  * Loaded after driver.css, which is what lets these override it: the selectors are the same
  * weight, so order decides.
@@ -28,54 +25,139 @@
 }
 
 /*
- * Bootstrap 3 and 4 style the buttons and stop there. Neither exposes variables its
- * components consume (Bootstrap 3 predates custom properties entirely, and Bootstrap 4's
- * `:root` variables are not read by its own CSS), so anything else would mean hardcoding a
- * palette that drifts the moment a project customises its build. driver.js's white card is a
- * reasonable match for both, which are light-only frameworks anyway.
+ * A popover shaped like a Bootstrap popover.
  *
- * The one thing worth taking is the typeface, so the popover stops announcing itself in
- * Helvetica on a site that uses something else.
+ * driver.js gives the title 19px/700 and the body 14px, numbers of its own that match no
+ * framework, and renders no header at all. A Bootstrap popover has a tinted header with a rule
+ * under it, so a themed tour needs one or it reads as a foreign widget wearing the right
+ * buttons.
+ *
+ * The metrics are declared as variables and used once, so each version below restates only the
+ * handful of numbers it sizes differently. These defaults are Bootstrap 4's, which also makes
+ * the shared class usable on its own by a project describing its own theme.
  */
-.driver-popover.tourguide-bootstrap3,
-.driver-popover.tourguide-bootstrap4 {
+.driver-popover.tourguide-bootstrap {
+  --tourguide-box-bg: #fff;
+  --tourguide-box-radius: 0.3rem;
+  --tourguide-header-bg: #f7f7f7;
+  --tourguide-header-border-color: #ebebeb;
+  --tourguide-header-padding-y: 0.5rem;
+  --tourguide-header-padding-x: 0.75rem;
+  --tourguide-header-font-size: 1rem;
+  --tourguide-body-padding-y: 0.5rem;
+  --tourguide-body-padding-x: 0.75rem;
+  --tourguide-body-font-size: 0.875rem;
+
   font-family: inherit;
+  font-size: var(--tourguide-body-font-size);
+  background-color: var(--tourguide-box-bg);
+  border-radius: var(--tourguide-box-radius);
+  /* The header runs edge to edge, so the padding moves onto the parts. */
+  padding: 0;
+}
+
+/* Lined up with the header's own padding, so it sits where a Bootstrap dialog's close does. */
+.driver-popover.tourguide-bootstrap .tourguide-close {
+  top: var(--tourguide-header-padding-y);
+  right: var(--tourguide-header-padding-x);
+}
+
+.driver-popover.tourguide-bootstrap .driver-popover-title {
+  padding: var(--tourguide-header-padding-y) var(--tourguide-header-padding-x);
+  font-size: var(--tourguide-header-font-size);
+  /*
+   * Bootstrap's popover header is a heading element, and its headings are 500. driver.js's
+   * title is a plain div, so the weight has to be named rather than inherited.
+   */
+  font-weight: 500;
+  background-color: var(--tourguide-header-bg);
+  border-bottom: 1px solid var(--tourguide-header-border-color);
+  /* Follow the box's corners at the top, and meet the body squarely at the bottom. */
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 
 /*
- * Bootstrap 5 is different: `--bs-body-bg` and friends are set by Bootstrap itself and
- * re-set under `data-bs-theme="dark"`, so reading them here means the popover follows the
- * site's theme, dark mode included, with no second stylesheet to maintain.
+ * `margin: 0` also cancels the top margin driver.css gives the description when a title is
+ * showing, which leaves the padding here as the only gap below the header.
+ */
+.driver-popover.tourguide-bootstrap .driver-popover-description {
+  padding: var(--tourguide-body-padding-y) var(--tourguide-body-padding-x);
+  margin: 0;
+}
+
+/* No top padding: the description's own bottom padding already separates the two. */
+.driver-popover.tourguide-bootstrap .driver-popover-footer {
+  padding: 0 var(--tourguide-body-padding-x) var(--tourguide-body-padding-y);
+  margin-top: 0;
+}
+
+/*
+ * The arrow is a bordered triangle: each of driver.css's side rules makes three borders
+ * transparent and leaves one showing, so only that one is recoloured here. Setting
+ * `border-color` outright would beat those rules on specificity and fill in all four.
+ *
+ * The side names where the popover sits relative to its element, so `side-bottom` is a popover
+ * below its element, whose arrow is therefore on top, against the header. Bootstrap tints that
+ * one placement to its header colour for the same reason, and the rest to the body's.
+ */
+.driver-popover.tourguide-bootstrap .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--tourguide-header-bg);
+}
+
+.driver-popover.tourguide-bootstrap .driver-popover-arrow-side-top {
+  border-top-color: var(--tourguide-box-bg);
+}
+
+.driver-popover.tourguide-bootstrap .driver-popover-arrow-side-left {
+  border-left-color: var(--tourguide-box-bg);
+}
+
+.driver-popover.tourguide-bootstrap .driver-popover-arrow-side-right {
+  border-right-color: var(--tourguide-box-bg);
+}
+
+/*
+ * A step may have no title, and driver.js hides the element rather than dropping it. With no
+ * header, the top edge is the body, so the arrow against it follows.
+ */
+.driver-popover.tourguide-bootstrap:has(.driver-popover-title[style*="none"]) .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--tourguide-box-bg);
+}
+
+/* Bootstrap 3 sizes its popover in pixels, wider inside and with a rounder corner. */
+.driver-popover.tourguide-bootstrap3 {
+  --tourguide-box-radius: 6px;
+  --tourguide-header-padding-x: 14px;
+  --tourguide-header-padding-y: 8px;
+  --tourguide-header-font-size: 14px;
+  --tourguide-body-padding-y: 9px;
+  --tourguide-body-padding-x: 14px;
+  --tourguide-body-font-size: 14px;
+}
+
+/*
+ * Bootstrap 5 is different: `--bs-body-bg` and friends are set by Bootstrap itself and re-set
+ * under `data-bs-theme="dark"`, so reading them here means the popover follows the site's
+ * theme, dark mode included, with no second stylesheet to maintain. Its own `--bs-popover-*`
+ * variables are declared inside `.popover` and cannot be read from outside it, so these are the
+ * globals that those are defined from.
  */
 .driver-popover.tourguide-bootstrap5 {
+  --tourguide-box-bg: var(--bs-body-bg, #fff);
+  --tourguide-box-radius: var(--bs-border-radius-lg, 0.5rem);
+  --tourguide-header-bg: var(--bs-secondary-bg, #f7f7f7);
+  --tourguide-header-border-color: var(--bs-border-color-translucent, rgba(0, 0, 0, 0.175));
+  --tourguide-header-padding-x: 1rem;
+  --tourguide-body-padding-y: 1rem;
+  --tourguide-body-padding-x: 1rem;
+
   font-family: var(--bs-body-font-family, inherit);
-  background-color: var(--bs-body-bg, #fff);
   color: var(--bs-body-color, #2d2d2d);
-  border: var(--bs-border-width, 1px) solid var(--bs-border-color-translucent, rgba(0, 0, 0, 0.175));
-  border-radius: var(--bs-border-radius-lg, 0.5rem);
+  /* The same colour Bootstrap gives both the popover's border and its header rule. */
+  border: var(--bs-border-width, 1px) solid var(--tourguide-header-border-color);
 }
 
 .driver-popover.tourguide-bootstrap5 .driver-popover-progress-text {
   color: var(--bs-secondary-color, #727272);
-}
-
-/*
- * The arrow is drawn with borders, and driver.css hardcodes white. Each side rule makes three
- * borders transparent and leaves one showing, so only that one is recoloured here: setting
- * `border-color` wholesale would beat those rules on specificity and fill in all four.
- */
-.driver-popover.tourguide-bootstrap5 .driver-popover-arrow-side-left {
-  border-left-color: var(--bs-body-bg, #fff);
-}
-
-.driver-popover.tourguide-bootstrap5 .driver-popover-arrow-side-right {
-  border-right-color: var(--bs-body-bg, #fff);
-}
-
-.driver-popover.tourguide-bootstrap5 .driver-popover-arrow-side-top {
-  border-top-color: var(--bs-body-bg, #fff);
-}
-
-.driver-popover.tourguide-bootstrap5 .driver-popover-arrow-side-bottom {
-  border-bottom-color: var(--bs-body-bg, #fff);
 }
