@@ -1,0 +1,58 @@
+name: Close linked issues
+
+# Closes the issues a merged pull request said it closes.
+#
+# GitHub normally does this itself, but it attributes the closing to whoever merged, and it
+# does not happen when that is the `github-actions[bot]` identity the auto-merge workflow uses.
+# Since every pull request here merges that way, every "Closes #123" was quietly going
+# unhonoured: no error, no log line, just an issue that stayed open. Three did before anyone
+# noticed.
+#
+# `pull_request_target` rather than `pull_request`, because the token needs to be able to write
+# and it is read-only for a pull request from a fork. Nothing here checks out or runs any code
+# from the pull request, which is what makes that safe.
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  close:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close the issues this pull request closes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Ask GitHub which issues it linked, rather than reading the description here. The
+          # keyword forms are many (closes, fixes, resolves, each with several spellings, and
+          # `#123`, `GH-123` or a full URL), and this is the exact set GitHub itself worked out
+          # from them, so the two can never disagree.
+          issues=$(gh api graphql -f query='
+            query($owner: String!, $name: String!, $pr: Int!) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $pr) {
+                  closingIssuesReferences(first: 50) { nodes { number state } }
+                }
+              }
+            }' -F owner="${REPO%/*}" -F name="${REPO#*/}" -F pr="${PR}" \
+            --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[]
+                  | select(.state == "OPEN") | .number')
+
+          if [ -z "$issues" ]; then
+            echo "Nothing to close: this pull request links no open issues."
+            exit 0
+          fi
+
+          for number in $issues; do
+            echo "Closing #${number}"
+            gh issue close "$number" --repo "$REPO" --reason completed \
+              --comment "Closed by #${PR}."
+          done
