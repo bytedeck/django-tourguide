@@ -14,7 +14,7 @@ from django.template import Context, Template
 from django.test import RequestFactory, TestCase, override_settings
 
 from tourguide.checks import check_theme
-from tourguide.themes import BOOTSTRAP3, BOOTSTRAP4, BOOTSTRAP5, THEMES, get_theme
+from tourguide.themes import BOOTSTRAP3, BOOTSTRAP4, BOOTSTRAP5, SHARED_CLASS, THEMES, get_theme
 
 
 def render(source, **context):
@@ -95,6 +95,16 @@ class BootstrapDifferenceTests(TestCase):
         popovers = {name: theme["popover"] for name, theme in THEMES.items()}
 
         self.assertEqual(len(set(popovers.values())), 3)
+
+    def test_every_bootstrap_theme_carries_the_shared_class(self):
+        """The popover chrome the three versions agree on is written against this one class.
+
+        Each version then restates only the metrics it sizes differently, so a theme naming
+        just its own class would render a popover with no padding at all.
+        """
+        for name, theme in THEMES.items():
+            with self.subTest(theme=name):
+                self.assertIn(SHARED_CLASS, theme["popover"].split())
 
 
 class CustomThemeTests(TestCase):

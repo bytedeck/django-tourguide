@@ -130,7 +130,14 @@
     }
 
     if (theme.popover && popover.wrapper) {
-      popover.wrapper.classList.add(theme.popover);
+      // Split, because a theme may name more than one: the Bootstrap themes carry a shared
+      // class alongside their version-specific one, so the parts common to all three are
+      // written once in the stylesheet.
+      theme.popover.split(/\s+/).forEach(function (name) {
+        if (name) {
+          popover.wrapper.classList.add(name);
+        }
+      });
     }
   }
 
