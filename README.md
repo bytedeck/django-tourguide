@@ -505,6 +505,35 @@ It tells the two apart by asking whether `ci-ok` itself passed on the head commi
 ruleset would answer that more directly, but a workflow cannot: the built-in token cannot be
 granted administration scope, so rulesets are not readable from CI at all.
 
+### Cutting a release
+
+A release is a tag. `Release` builds and publishes on any `v*` tag, and nothing else triggers
+it, so publishing is always something someone chose to do.
+
+1. Bump the version in `pyproject.toml` **and** `tourguide/__init__.py`. A test asserts the two
+   agree, so forgetting one fails CI rather than shipping a package whose `__version__` lies.
+2. Add the release to `CHANGELOG.md`.
+3. Merge that, then tag the merge commit `vX.Y.Z` and push the tag.
+
+The workflow refuses a tag that disagrees with the packaged version, before building anything:
+the tag is what a release page, a changelog heading and a pinned `pip install` all read the
+version off, and PyPI does not allow taking a version back.
+
+Uploading uses [trusted publishing](https://docs.pypi.org/trusted-publishers/), so there is no
+token in this repository at all: each run exchanges a short-lived OpenID Connect identity for
+an upload credential that expires with it. PyPI is told once which workflow may publish, which
+means **renaming `release.yml` breaks publishing** until the publisher is updated to match.
+Setting that up on a project that does not exist on PyPI yet is a *pending publisher*, under
+Your account → Publishing:
+
+| | |
+|---|---|
+| PyPI project name | `django-tourguide` |
+| Owner | `bytedeck` |
+| Repository | `django-tourguide` |
+| Workflow | `release.yml` |
+| Environment | `pypi` |
+
 ## Why not an existing package
 
 - [`django-tours`](https://github.com/wilmerm/django-tours) is the closest fit and has a good
